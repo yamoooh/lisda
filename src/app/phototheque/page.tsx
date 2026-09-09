@@ -1,49 +1,100 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 export default function PhotothequePage() {
   const photos = [
-    { id: '1', titre: 'Atelier communautaire à Dombe', categorie: 'Vie Associative', url: 'https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?auto=format&fit=crop&w=800&q=80' },
-    { id: '2', titre: 'Reboisement sur le littoral de Kribi', categorie: 'Environnement', url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80' },
-    { id: '3', titre: 'Rencontre avec les chefferies Bagyeli', categorie: 'Autochtones', url: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80' },
-    { id: '4', titre: 'Récolte et séchage du Njansang', categorie: 'Autonomie Femmes', url: 'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80' },
-    { id: '5', titre: 'Distribution de kits scolaires', categorie: 'Education', url: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=800&q=80' },
-    { id: '6', titre: 'Consultation de santé communautaire', categorie: 'Santé', url: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=800&q=80' },
+    {
+      id: '1',
+      titre: 'Rassemblement communautaire à Dombe',
+      categorie: 'Vie Associative',
+      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_PQc8frk8u8MaK-x5KKldxwQk83SCnpGnTYaX7Ezn7TLN81GB6L08pkidkypFcyoaR9EtGFkl3oP9XrxgRPrYZjsXAqOcrzEWase9JPC9ar-Cgh542k3fnRummV3pWJdD0htjI5iRaGxD-gNo3xWsQB4ify_64UoQDPu5XrUL6jbfGlf5eBjZGJnZ2J1tIO0Vef5psxO3xK9rICVJyqKAlYJG6Ga50neQuOOVv2yCkaOW621DVjypPA'
+    },
+    {
+      id: '2',
+      titre: 'Formation agroforestière des femmes rurales',
+      categorie: 'Autonomisation',
+      url: 'https://lh3.googleusercontent.com/aida/AEtjO1VFbSmGSavr_HPFZmQoHX-RIpwQKN-SssYZHRDgD_GB3NkJXOpgKzw-q879xtyefgHJGcJiNRJBNwzLW7KSTgwWud1AH84pZVLtXDzRH4hAZzHaCHtixpezp7EPXIm3_60OMUCauAyHmGJhdcFkXM56VmEt824ZbC9kONRx3PPsXnMdHe2IeHGcsnSBhT63E2lk9LwlSVPrSLYxPanA2miZkxzIFskg2uAxLCjeG-X0UEel8xyfipIcEBI'
+    },
+    {
+      id: '3',
+      titre: 'Restauration de la ceinture côtière de Kribi',
+      categorie: 'Environnement',
+      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfCQ82xd-4McG0gN4b-G41tl1_PRniHOV9qCNQIUyWVFLhhKYYt6bniUFzcjfklDlZarp4wG0rm0gVLo5t-hgn1xWMvOEtm3swSD759ZlyuGUmyVkekReGDzz0BZLLFGKBGAB5KORAjmFOpBP_pYEzDjjvecxtWfKztKcufFL5IpUOWRu47P9eFFlmY3GkqQVfbDTvX_dzvA8QKQRIYzREuD5QL1aHEnXVBEU5e1CZmZv9-HbW1JoCuw'
+    },
+    {
+      id: '4',
+      titre: 'Concertation sous l\'arbre à palabres avec les peuples Bagyeli',
+      categorie: 'Plaidoyer & Droits',
+      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBn4HVFmswYZ6wyHY-tIwJJgfpy9J5K6ZfWZVDX4-Z_6S-ALVu3kCU43fLb7BrjElgWIxIgdXwJ0nqb5MfRbJ6Ag0A6hQJO3XDQ76GCpmW6mOfwqli8LpUiZKMJpQZtMCg0zZ3ez06PkOQjIeYKDxTSQ2SpSYqhRCjaNYV_cFSjLLEJeFff1FbrJtdRDlW3UZxy_ns0EfhRw7__1lN-Bh6JMKNj_YgNZueTfk4K5DstdwWc9iMbfAcxcw'
+    },
+    {
+      id: '5',
+      titre: 'Séance de travail du Bureau Exécutif LISDA',
+      categorie: 'Gouvernance',
+      url: 'https://lh3.googleusercontent.com/aida/AEtjO1XxknWRwNUC7LKKM_x4Wlpb1WIbQSeRfkAVfY6MQbNkZA_ksAifuaVjLQPadw3xnlbp6pyVRi4N4v598C95z2w4MaAW5t0Kuop14PYz2zPUk2PaXjMSeBiL9z-1FF_wmV28-6ZoAK5VNiLtYyWnXijVFOC_Q0LB6OMm6YvWxJkndZMWUNCmTF1sRtnLjjroyjGUCw5n9oAIS4gollvJjK516KrpZWWJDlyHklMmBOdRVu_e4oAaMSQbC_HH'
+    },
+    {
+      id: '6',
+      titre: 'Inspection des mangroves littorales atlantiques',
+      categorie: 'Climat & Littoral',
+      url: 'https://lh3.googleusercontent.com/aida/AEtjO1WsyIzKPZ683w0klF6bC9fo1n72LRD-JobZ0xMkktIVDEm5elWDlj6QYG3RgoXX6oxlZ_130dN5dPeXSnY61_bgXsmlt1tDQlD_iQyfMgZC-XFbqATcJNiEBxWgfjMmNzBbc938O-kInRC4ooGJgtO0zqa613TsOnEyqxSZ5KB7x6IWbEphBMJPswrq8yHiYy2tFs2hxld-x_t8-KXfJPZ8OZtu8glRhvqeZuCUMCl-O8EGXl2ItQUQB9ge'
+    },
+    {
+      id: '7',
+      titre: 'Distribution d\'actes d\'état-civil aux familles Bagyeli',
+      categorie: 'Droits Autochtones',
+      url: 'https://lh3.googleusercontent.com/aida/AEtjO1Upk9p7p4sPpCDuXHZAWWa8T_nxiY9RrxRuzc9lK-C3CBf_fH8JocH7DZVFwuTJ6A874Vex13q1IPrhjPrYseL-HmRdHxYq1mlsWbsCd8_paNgg9hxkLsD7bJ2aAMkJ8kVrbvLyDq1Sy7ht8GE9OeLUQ3z9T6yYMuoxAZyQU7TEgH1fVz5jhg-FIQHtKW2TAuJVBRqDLcGb-2JeZ5UMxIogckUgvJUSZfd21xO0FnzupegibHAHcY6tzaeT'
+    },
+    {
+      id: '8',
+      titre: 'Pépinière d\'arbres autochtones du Sud Cameroun',
+      categorie: 'Agroécologie',
+      url: 'https://lh3.googleusercontent.com/aida/AEtjO1USdvAjMpwTyYKCaafQ4AM_0htx06M07r5wPyXIshWOCCE1IO3L4ZBYrhCk6jB45FUtqTa_dWK4DWT7KhYVHfFvDPcagpTwl2BjYkae3P_7axhf8pEJo37ma_UkkOnw8T8W1O3LXcREEP1Pt9E4slDdpLIb1bhwFDKF7gh0pEnYnXTj94gjoBeLIAtLyljcfvE7GL-tsS03-hNaSaS4Io_84vLeqEq93eKyiOsENxG7_YI0QV3tEKapcm0'
+    }
   ];
 
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   return (
-    <div className="py-16 px-4 max-w-7xl mx-auto space-y-12">
+    <div className="w-full bg-[#fbf9f4] text-[#1b1c19] min-h-screen py-12 px-6 lg:px-12 space-y-12">
       <div className="text-center max-w-3xl mx-auto space-y-4">
-        <span className="text-[#083415] font-bold text-xs uppercase tracking-widest">Galerie Photo</span>
-        <h1 className="text-4xl font-extrabold text-[#083415]">Photothèque des Activités LISDA</h1>
+        <span className="text-[#083415] font-bold text-xs uppercase tracking-widest bg-[#083415]/10 px-3.5 py-1 rounded-full">
+          Archives Visuelles Officielles
+        </span>
+        <h1 className="text-4xl font-extrabold text-[#083415]">
+          Photothèque des Actions de Terrain LISDA
+        </h1>
         <p className="text-gray-600 text-lg">
-          Découvrez nos actions sur le terrain à Kribi et dans le Bassin du Congo à travers nos archives photographiques.
+          Découvrez nos activités à Kribi et dans le Bassin du Congo à travers les images authentiques générées par notre plateforme.
         </p>
       </div>
 
       {/* Photo Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
         {photos.map((p) => (
           <div
             key={p.id}
             onClick={() => setSelectedPhoto(p.url)}
-            className="group cursor-pointer bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl transition-all"
+            className="group cursor-pointer bg-white rounded-2xl overflow-hidden border border-[#083415]/10 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
           >
-            <div className="h-60 overflow-hidden relative">
-              <img
+            <div className="h-64 overflow-hidden relative bg-[#f0eee9]">
+              <Image
                 src={p.url}
                 alt={p.titre}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               />
-              <div className="absolute top-3 left-3 bg-[#083415]/80 text-[#feb323] px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">
+              <div className="absolute top-3 left-3 bg-[#083415]/80 text-[#bfefc0] px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-md">
                 {p.categorie}
               </div>
             </div>
             <div className="p-4">
-              <h3 className="font-bold text-sm text-[#083415] group-hover:text-[#ba6d14] transition-colors">{p.titre}</h3>
+              <h3 className="font-bold text-sm text-[#083415] group-hover:text-[#ba6d14] transition-colors leading-snug">
+                {p.titre}
+              </h3>
             </div>
           </div>
         ))}
@@ -53,13 +104,19 @@ export default function PhotothequePage() {
       {selectedPhoto && (
         <div
           onClick={() => setSelectedPhoto(null)}
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out backdrop-blur-md"
         >
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <img src={selectedPhoto} alt="Agrandissement photo" className="max-w-full max-h-[85vh] rounded-xl object-contain" />
+          <div className="relative max-w-5xl w-full h-[80vh]">
+            <Image
+              src={selectedPhoto}
+              alt="Agrandissement photo"
+              fill
+              className="object-contain rounded-2xl"
+              sizes="100vw"
+            />
             <button
               onClick={() => setSelectedPhoto(null)}
-              className="absolute -top-10 right-0 text-white text-sm font-bold bg-white/20 px-3 py-1 rounded-full"
+              className="absolute top-4 right-4 text-white text-xs font-bold bg-[#083415] border border-[#feb323] px-4 py-2 rounded-full shadow-lg"
             >
               Fermer ✕
             </button>
@@ -69,3 +126,4 @@ export default function PhotothequePage() {
     </div>
   );
 }
+
