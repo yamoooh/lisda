@@ -1,4 +1,6 @@
-import Link from 'next/link';
+const fs = require('fs');
+
+const pageAccueilContent = `import Link from 'next/link';
 
 export default function Home() {
   const actualites = [
@@ -225,3 +227,7 @@ export default function Home() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('d:/lisda-site/src/app/page.tsx', pageAccueilContent, 'utf8');
+console.log('Injected all exact Stitch images into src/app/page.tsx!');
