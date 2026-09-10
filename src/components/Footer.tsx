@@ -9,7 +9,7 @@ export default function Footer() {
         {/* Brand Col */}
         <div className="space-y-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden bg-white/5 p-1">
+            <div className="relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden bg-white p-1.5 shadow-md">
               <Image
                 src="/logo-officiel.png"
                 alt="Logo LISDA ONG"

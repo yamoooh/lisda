@@ -44,14 +44,14 @@ export default function Header() {
       </div>
 
       <header className="sticky top-0 w-full z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 h-24 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative w-12 h-12 flex-shrink-0">
+            <div className="relative w-24 h-24 flex-shrink-0">
               <Image
                 src="/logo-officiel.png"
                 alt="Logo LISDA ONG"
-                width={48}
-                height={48}
+                width={96}
+                height={96}
                 className="object-contain group-hover:scale-105 transition-transform duration-200"
                 priority
               />
