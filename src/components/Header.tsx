@@ -19,30 +19,7 @@ export default function Header() {
     { name: 'Contribution', href: '/contribution' },
     { name: 'Contact', href: '/contact' },
   ];
-
   return (
-    <>
-      <div className="w-full bg-[#001d07] text-white py-2 px-4 text-xs border-b border-[#083415]">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-gray-300">
-            <span>📍 Dombe, Kribi (Cameroun)</span>
-            <span className="hidden lg:inline text-gray-600">•</span>
-            <a href="mailto:Patrice_segbe@yahoo.fr" className="hover:text-[#feb323] transition-colors">
-              ✉️ Patrice_segbe@yahoo.fr
-            </a>
-            <span className="hidden lg:inline text-gray-600">•</span>
-            <a href="tel:+237677593239" className="hover:text-[#feb323] transition-colors">
-              📞 +237 677 593 239
-            </a>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="bg-[#083415] px-2.5 py-0.5 rounded-full text-[10px] text-[#feb323] border border-[#feb323]/30 font-semibold">
-              Association Déclarée - Récépissé Officiel
-            </span>
-          </div>
-        </div>
-      </div>
-
       <header className="sticky top-0 w-full z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-24 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group">
@@ -138,6 +115,5 @@ export default function Header() {
           </div>
         )}
       </header>
-    </>
   );
 }
