@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -7,12 +8,18 @@ export default function Footer() {
         
         {/* Brand Col */}
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#083415] text-[#feb323] font-bold flex items-center justify-center text-lg border border-[#feb323]/20">
-              🌿
+          <Link href="/" className="flex items-center gap-3">
+            <div className="relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden bg-white/5 p-1">
+              <Image
+                src="/logo-officiel.png"
+                alt="Logo LISDA ONG"
+                width={56}
+                height={56}
+                className="object-contain"
+              />
             </div>
             <span className="font-bold text-xl text-white">LISDA ONG</span>
-          </div>
+          </Link>
           <p className="text-gray-400 text-sm leading-relaxed">
             Local Initiatives for a Sustainable Development in Africa. Ancrée à Dombe, Kribi (Cameroun), l'ONG agit pour la biodiversité du Bassin du Congo et la résilience des communautés.
           </p>

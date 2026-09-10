@@ -19,15 +19,31 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://lisda-site.vercel.app"),
   title: "LISDA ONG - Développement Local Durable Afrique, Kribi Cameroun",
   description: "LISDA (Local Initiatives for a Sustainable Development in Africa) à Dombe, Kribi. Association humanitaire pour la biodiversité du Bassin du Congo et la dignité des peuples autochtones Bagyeli.",
   keywords: ["LISDA", "développement local durable Afrique", "ONG Cameroun", "communautés autochtones", "bassin du Congo", "Kribi", "Bagyeli"],
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    other: [
+      { rel: "manifest", url: "/site.webmanifest" },
+    ],
+  },
   openGraph: {
     title: "LISDA ONG - Bassin du Congo, Kribi Cameroun",
     description: "Association humanitaire dédiée au développement local durable et à la préservation du Bassin du Congo.",
     url: "https://lisda-site.org",
     siteName: "LISDA ONG",
     type: "website",
+    images: [
+      { url: "/logo-officiel.png", width: 500, height: 500, alt: "Logo LISDA ONG" },
+    ],
   },
 };
 

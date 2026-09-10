@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
@@ -45,8 +46,15 @@ export default function Header() {
       <header className="sticky top-0 w-full z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 rounded-xl bg-[#083415] text-[#feb323] font-bold flex items-center justify-center text-xl shadow-md group-hover:scale-105 transition-transform">
-              🌿
+            <div className="relative w-12 h-12 flex-shrink-0">
+              <Image
+                src="/logo-officiel.png"
+                alt="Logo LISDA ONG"
+                width={48}
+                height={48}
+                className="object-contain group-hover:scale-105 transition-transform duration-200"
+                priority
+              />
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-xl tracking-tight text-[#083415]">LISDA ONG</span>
@@ -55,6 +63,7 @@ export default function Header() {
               </span>
             </div>
           </Link>
+
 
           <nav className="hidden xl:flex items-center gap-1 bg-[#f0eee9] p-1.5 rounded-full">
             {navLinks.map((link) => {
