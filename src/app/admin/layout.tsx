@@ -215,7 +215,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
             
             <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
-              <span className="text-xs font-bold text-[#083415] hidden sm:block">{currentAdmin.nom}</span>
+              <Link
+                href="/admin/utilisateurs"
+                className="text-xs font-bold text-[#083415] hover:text-[#ba6d14] flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-gray-100 transition-colors"
+                title="Gérer les accès et mots de passe"
+              >
+                <span>🔑</span>
+                <span className="hidden sm:inline">{currentAdmin.nom}</span>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="px-3 py-1.5 rounded-full bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold transition-all"

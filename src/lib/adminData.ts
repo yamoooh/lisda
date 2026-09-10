@@ -6,6 +6,7 @@ export interface AdminUser {
   nom: string;
   role: 'Super-Administrateur' | 'Administrateur' | 'Éditeur';
   actif: boolean;
+  password?: string;
   date_creation: string;
 }
 

@@ -98,6 +98,19 @@ export default function AdminPage() {
         setAuthError("Ce compte administrateur a été désactivé par la coordination.");
         return;
       }
+
+      if (foundAdmin.password && foundAdmin.password !== password) {
+        setAuthError("Mot de passe incorrect. Veuillez vérifier votre saisie.");
+        return;
+      }
+
+      // If no password was stored previously, save the current password
+      if (!foundAdmin.password && password) {
+        foundAdmin.password = password;
+        const updatedAdmins = admins.map(a => a.id === foundAdmin.id ? foundAdmin : a);
+        setStoredData('lisda_admin_users', updatedAdmins);
+      }
+
       setStoredData('lisda_active_admin', foundAdmin);
       setCurrentAdmin(foundAdmin);
       setAuthSuccess('Connexion réussie ! Redirection en cours...');
@@ -109,6 +122,7 @@ export default function AdminPage() {
           nom: 'NSEGBE Patrice',
           role: 'Super-Administrateur',
           actif: true,
+          password: password || 'AdminLISDA2026!',
           date_creation: new Date().toISOString()
         };
         const newAdmins = [...admins, rootAdmin];
@@ -136,6 +150,7 @@ export default function AdminPage() {
       email: firstAdminEmail.trim(),
       role: 'Super-Administrateur',
       actif: true,
+      password: firstAdminPassword,
       date_creation: new Date().toISOString()
     };
 
