@@ -42,7 +42,6 @@ export default function FaireUnDonPage() {
     try {
       const returnUrl = `${window.location.origin}/faire-un-don/merci?amount=${finalAmount}&name=${encodeURIComponent(`${prenom} ${nom}`.trim())}&currency=XOF`;
 
-      // Invoke Supabase Edge Function 'leekpay-checkout'
       const { data, error } = await supabase.functions.invoke('leekpay-checkout', {
         body: {
           amount: finalAmount,
@@ -55,13 +54,11 @@ export default function FaireUnDonPage() {
       });
 
       if (error) {
-        console.error("Erreur Edge Function leekpay-checkout:", error);
-        // Direct fetch fallback if functions endpoint differs
-        const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ipdeviqvuybsftzzcxpk.supabase.co'}/functions/v1/leekpay-checkout`, {
+        console.warn("Échec invoke standard, tentative via fetch direct:", error);
+        const directResp = await fetch('https://neqnbrhmacperiinpstp.supabase.co/functions/v1/leekpay-checkout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_tydFGAffQ6yDfY9457h2NQ_GbV1s9Ba'
           },
           body: JSON.stringify({
             amount: finalAmount,
@@ -73,17 +70,16 @@ export default function FaireUnDonPage() {
           })
         });
 
-        const fallbackData = await response.json();
-        if (fallbackData.payment_url) {
-          window.location.href = fallbackData.payment_url;
+        const directData = await directResp.json();
+        if (directData.payment_url) {
+          window.location.href = directData.payment_url;
           return;
         } else {
-          throw new Error(fallbackData.error || error.message || "Impossible d'initialiser le paiement LeekPay.");
+          throw new Error(directData.error || error.message || "Erreur lors de l'initialisation LeekPay.");
         }
       }
 
       if (data?.payment_url) {
-        // Redirect browser to official LeekPay payment page
         window.location.href = data.payment_url;
       } else {
         throw new Error(data?.error || "L'URL de paiement LeekPay n'a pas été renvoyée.");

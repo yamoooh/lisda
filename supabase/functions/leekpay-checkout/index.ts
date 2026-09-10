@@ -23,16 +23,27 @@ serve(async (req) => {
       );
     }
 
-    // Read Secret Key exclusively from Supabase Secrets
-    const leekpaySecretKey = Deno.env.get("LEEKPAY_SECRET_KEY");
+    // Read Secret / Private Key from all possible variations in Supabase Secrets
+    const leekpaySecretKey = 
+      Deno.env.get("LEEKPAY_SECRET_KEY_privee") ||
+      Deno.env.get("LEEKPAY_SECRET_KEY_prive") ||
+      Deno.env.get("LEEKPAY_SECRET_KEY_private") ||
+      Deno.env.get("LEEKPAY_SECRET_KEY") ||
+      Deno.env.get("LEEKPAY_PRIVATE_KEY") ||
+      Deno.env.get("LEEKPAY_SECRET") ||
+      "";
+
     if (!leekpaySecretKey) {
+      console.error("Clé secrète LeekPay introuvable dans les variables d'environnement.");
       return new Response(
-        JSON.stringify({ error: "Configuration LeekPay manquante sur le serveur (LEEKPAY_SECRET_KEY non définie)." }),
+        JSON.stringify({ 
+          error: "Clé secrète LeekPay (LEEKPAY_SECRET_KEY_privee ou LEEKPAY_SECRET_KEY) manquante dans les Secrets Supabase." 
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://neqnbrhmacperiinpstp.supabase.co";
     const webhookUrl = `${supabaseUrl}/functions/v1/leekpay-webhook`;
     const defaultReturnUrl = return_url || "https://lisda.vercel.app/faire-un-don/merci";
 
@@ -52,7 +63,7 @@ serve(async (req) => {
       }
     };
 
-    console.log("Appel LeekPay API /checkout pour", amount, "XOF");
+    console.log("Appel LeekPay API /checkout pour montant:", amount, "XOF");
 
     const response = await fetch("https://leekpay.fr/api/v1/checkout", {
       method: "POST",
@@ -66,7 +77,7 @@ serve(async (req) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Erreur LeekPay API:", data);
+      console.error("Erreur retournée par LeekPay:", data);
       return new Response(
         JSON.stringify({ 
           error: data.message || data.error || "Échec de l'initialisation du paiement LeekPay.",

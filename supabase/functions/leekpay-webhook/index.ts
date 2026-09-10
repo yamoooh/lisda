@@ -25,13 +25,23 @@ serve(async (req) => {
     }
 
     // Retrieve Secret / Public Keys for signature verification
-    const leekpayPublicKey = Deno.env.get("LEEKPAY_PUBLIC_KEY") || "";
-    const leekpaySecretKey = Deno.env.get("LEEKPAY_SECRET_KEY") || "";
+    const leekpayPublicKey = 
+      Deno.env.get("LEEKPAY_SECRET_KEY_public") ||
+      Deno.env.get("LEEKPAY_PUBLIC_KEY") ||
+      Deno.env.get("LEEKPAY_PUB_KEY") ||
+      "";
+
+    const leekpaySecretKey = 
+      Deno.env.get("LEEKPAY_SECRET_KEY_privee") ||
+      Deno.env.get("LEEKPAY_SECRET_KEY_prive") ||
+      Deno.env.get("LEEKPAY_SECRET_KEY_private") ||
+      Deno.env.get("LEEKPAY_SECRET_KEY") ||
+      Deno.env.get("LEEKPAY_PRIVATE_KEY") ||
+      "";
 
     // Signature verification check if provided
     if (signatureHeader && (leekpayPublicKey || leekpaySecretKey)) {
       console.log("Vérification signature webhook LeekPay:", signatureHeader);
-      // Optional HMAC verification if LeekPay sends HMAC SHA256 signature
     }
 
     // Check event type or payment status
@@ -55,7 +65,7 @@ serve(async (req) => {
       const accordAffichage = data.metadata?.accord_affichage ?? payload.metadata?.accord_affichage ?? true;
 
       // Connect to Supabase using Service Role Key
-      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://neqnbrhmacperiinpstp.supabase.co";
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
       if (supabaseUrl && supabaseServiceKey) {
