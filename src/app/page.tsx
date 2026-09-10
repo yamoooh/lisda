@@ -28,18 +28,18 @@ export default function Home() {
   return (
     <div className="flex flex-col w-full">
       {/* Hero Section Stitch avec l'image de fond d'origine */}
-      <section className="relative w-full overflow-hidden bg-[#083415] text-white py-20 lg:py-28 px-4">
+      <section className="relative w-full overflow-hidden bg-[#083415] text-white py-16 lg:py-24 px-4">
         <div className="absolute inset-0 z-0">
           <img
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6_dti4xkWAyNrBVa9z6CEcN6gLf_XqYlgczIMkwHN2gqBNlzELYuH9GwWbWnHMdr73NNeilU5ZN2NS8PyKZbtz_01L42TlyL7GQDzJ8Y2MwoO6jdbq4FoHP_y-MhQlwvgob7WMJx2n66OKglVHFIjH5_l4C1wngKWNMk3Hg61tBSIDQhrgYBmyaMUIiryWnj4pt4ykEMXbOcfDlZ2CSs5yFfePerscADmxWo2TxkCdZtXxl4j_dKQyA"
             alt="Communauté locale et équipe de LISDA à Kribi"
-            className="w-full h-full object-cover object-center opacity-35 mix-blend-luminosity scale-105"
+            className="w-full h-full object-cover object-center opacity-45 mix-blend-luminosity scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#001d07] via-[#083415]/90 to-[#083415]/50"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#001d07] via-[#083415]/80 to-[#083415]/30"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-[#083415] via-transparent to-transparent"></div>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-end">
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-[#feb323] text-xs font-bold uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-[#feb323] animate-pulse"></span>
@@ -70,17 +70,17 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="lg:col-span-5">
-            <div className="bg-[#001d07] p-8 rounded-3xl border border-[#feb323]/30 shadow-2xl space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+          <div className="lg:col-span-5 self-end mt-4 lg:mt-0">
+            <div className="bg-[#001d07]/90 backdrop-blur-sm p-5 lg:p-6 rounded-2xl border border-[#feb323]/30 shadow-2xl space-y-3.5">
+              <div className="flex items-center justify-between border-b border-gray-800/80 pb-3">
                 <span className="text-[#feb323] font-bold text-xs uppercase tracking-wider">Siège & Zone d'Impact</span>
-                <span className="bg-[#537f1b]/20 text-[#729e75] px-2.5 py-1 rounded-full text-xs font-semibold">ONG Déclarée</span>
+                <span className="bg-[#537f1b]/20 text-[#729e75] px-2.5 py-0.5 rounded-full text-[11px] font-semibold">ONG Déclarée</span>
               </div>
-              <h3 className="text-xl font-bold text-white">Dombe, Kribi (Cameroun)</h3>
-              <p className="text-sm text-gray-300">
+              <h3 className="text-lg font-bold text-white">Dombe, Kribi (Cameroun)</h3>
+              <p className="text-xs text-gray-300 leading-relaxed">
                 Installée à Dombe aux portes de Kribi, l'équipe LISDA conjugue présence quotidienne auprès des populations maritimes et expéditions régulières dans les forêts profondes du Sud Cameroun.
               </p>
-              <div className="pt-2 border-t border-gray-800 flex justify-between items-center text-xs text-gray-400">
+              <div className="pt-2 border-t border-gray-800/80 flex justify-between items-center text-xs text-gray-400">
                 <span>Président Coordonnateur :</span>
                 <span className="font-bold text-[#feb323]">NSEGBE Patrice</span>
               </div>
