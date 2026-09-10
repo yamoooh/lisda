@@ -38,6 +38,9 @@ export interface DocumentItem {
   annee: string;
   url: string;
   taille: string;
+  file_name?: string;
+  file_type?: string;
+  file_data?: string;
   telechargements: number;
 }
 
@@ -132,7 +135,7 @@ export const initialPhototheque: PhotothequeItem[] = [
     categorie: "Vie Associative",
     date: "Mars 2026",
     description: "Assemblée générale des membres et sympathisants de LISDA à Kribi pour définir les priorités agroforestières de l'année.",
-    url: "/images/phototheque-1.webp",
+    url: "/images/rassemblement-dombe.webp",
     type: 'image',
     taille: '1.2 Mo'
   },
@@ -142,7 +145,7 @@ export const initialPhototheque: PhotothequeItem[] = [
     categorie: "Autonomisation",
     date: "Février 2026",
     description: "Session pratique sur la multiplication des semences vivrières et l'arboriculture fruitière durable.",
-    url: "/images/phototheque-2.webp",
+    url: "/images/formation-femmes.webp",
     type: 'image',
     taille: '980 Ko'
   },
@@ -152,7 +155,7 @@ export const initialPhototheque: PhotothequeItem[] = [
     categorie: "Environnement",
     date: "Janvier 2026",
     description: "Plantation citoyenne de palétuviers pour freiner l'érosion marine et restaurer l'habitat des poissons côtiers.",
-    url: "/images/phototheque-3.webp",
+    url: "/images/restauration-mangroves.webp",
     type: 'image',
     taille: '1.5 Mo'
   },
@@ -162,7 +165,7 @@ export const initialPhototheque: PhotothequeItem[] = [
     categorie: "Plaidoyer & Droits",
     date: "Décembre 2025",
     description: "Dialogue communautaire sur la sécurisation foncière coutumière et la protection de la forêt équatoriale.",
-    url: "/images/phototheque-4.webp",
+    url: "/images/arbre-palabres.webp",
     type: 'image',
     taille: '1.8 Mo'
   },
@@ -172,7 +175,7 @@ export const initialPhototheque: PhotothequeItem[] = [
     categorie: "Gouvernance",
     date: "Février 2026",
     description: "Coordination stratégique des projets et validation des rapports d'étape trimestriels au siège à Dombe.",
-    url: "/images/phototheque-5.webp",
+    url: "/images/bureau-executif.webp",
     type: 'image',
     taille: '1.1 Mo'
   },
@@ -182,7 +185,7 @@ export const initialPhototheque: PhotothequeItem[] = [
     categorie: "Climat & Littoral",
     date: "Janvier 2026",
     description: "Mission de suivi écologique le long de l'embouchure du fleuve Kienké et surveillance de la biodiversité.",
-    url: "/images/phototheque-6.webp",
+    url: "/images/inspection-mangroves.webp",
     type: 'image',
     taille: '1.4 Mo'
   },
@@ -192,7 +195,7 @@ export const initialPhototheque: PhotothequeItem[] = [
     categorie: "Droits Autochtones",
     date: "Novembre 2025",
     description: "Remise officielle de jugements supplétifs et d'actes de naissance pour garantir la citoyenneté des enfants autochtones.",
-    url: "/images/phototheque-7.webp",
+    url: "/images/distribution-etat-civil.webp",
     type: 'image',
     taille: '1.3 Mo'
   },
@@ -202,7 +205,7 @@ export const initialPhototheque: PhotothequeItem[] = [
     categorie: "Agroécologie",
     date: "Octobre 2025",
     description: "Production de milliers de jeunes plants d'essences forestières nobles pour les programmes de reboisement participatif.",
-    url: "/images/phototheque-8.webp",
+    url: "/images/pepiniere-arbres.webp",
     type: 'image',
     taille: '1.6 Mo'
   }
@@ -216,6 +219,8 @@ export const initialDocuments: DocumentItem[] = [
     annee: "2026",
     url: "#",
     taille: "3.4 Mo",
+    file_name: "Rapport_Activite_LISDA_2025-2026.pdf",
+    file_type: "application/pdf",
     telechargements: 142
   },
   {
@@ -225,6 +230,8 @@ export const initialDocuments: DocumentItem[] = [
     annee: "2026",
     url: "#",
     taille: "2.1 Mo",
+    file_name: "Plan_Action_Strategique_LISDA_2026-2030.pdf",
+    file_type: "application/pdf",
     telechargements: 89
   },
   {
@@ -234,6 +241,8 @@ export const initialDocuments: DocumentItem[] = [
     annee: "2025",
     url: "#",
     taille: "1.8 Mo",
+    file_name: "Statuts_Reglement_Interieur_LISDA.pdf",
+    file_type: "application/pdf",
     telechargements: 310
   },
   {
@@ -243,6 +252,8 @@ export const initialDocuments: DocumentItem[] = [
     annee: "2025",
     url: "#",
     taille: "5.2 Mo",
+    file_name: "Etude_Impact_Peuples_Bagyeli.pdf",
+    file_type: "application/pdf",
     telechargements: 76
   }
 ];
@@ -388,6 +399,18 @@ export const initialNewsletters: NewsletterItem[] = [
   { id: 'nl-4', email: 'contact@bassin-congo.org', date_inscription: '2026-02-15', actif: true }
 ];
 
+// Fallback mapping for legacy or broken URLs in user's localStorage
+const legacyPhotothequeFixes: Record<string, string> = {
+  '/images/phototheque-1.webp': '/images/rassemblement-dombe.webp',
+  '/images/phototheque-2.webp': '/images/formation-femmes.webp',
+  '/images/phototheque-3.webp': '/images/restauration-mangroves.webp',
+  '/images/phototheque-4.webp': '/images/arbre-palabres.webp',
+  '/images/phototheque-5.webp': '/images/bureau-executif.webp',
+  '/images/phototheque-6.webp': '/images/inspection-mangroves.webp',
+  '/images/phototheque-7.webp': '/images/distribution-etat-civil.webp',
+  '/images/phototheque-8.webp': '/images/pepiniere-arbres.webp',
+};
+
 export function getStoredData<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') return defaultValue;
   try {
@@ -396,7 +419,25 @@ export function getStoredData<T>(key: string, defaultValue: T): T {
       localStorage.setItem(key, JSON.stringify(defaultValue));
       return defaultValue;
     }
-    return JSON.parse(item);
+    const parsed = JSON.parse(item);
+
+    // Auto-migrate legacy broken phototheque URLs
+    if (key === 'lisda_phototheque' && Array.isArray(parsed)) {
+      let changed = false;
+      const fixed = parsed.map((p: any) => {
+        if (p.url && legacyPhotothequeFixes[p.url]) {
+          changed = true;
+          return { ...p, url: legacyPhotothequeFixes[p.url] };
+        }
+        return p;
+      });
+      if (changed) {
+        localStorage.setItem(key, JSON.stringify(fixed));
+        return fixed as unknown as T;
+      }
+    }
+
+    return parsed;
   } catch {
     return defaultValue;
   }
@@ -409,5 +450,69 @@ export function setStoredData<T>(key: string, value: T): void {
     window.dispatchEvent(new Event('lisda_data_changed'));
   } catch (err) {
     console.error('Error saving storage key ' + key + ':', err);
+  }
+}
+
+// Supabase sync helpers
+export async function fetchSupabasePhototheque(): Promise<PhotothequeItem[]> {
+  try {
+    const { data, error } = await supabase.from('phototheque').select('*').order('created_at', { ascending: false });
+    if (error || !data || data.length === 0) {
+      return getStoredData<PhotothequeItem[]>('lisda_phototheque', initialPhototheque);
+    }
+    return data as PhotothequeItem[];
+  } catch {
+    return getStoredData<PhotothequeItem[]>('lisda_phototheque', initialPhototheque);
+  }
+}
+
+export async function syncSupabasePhototheque(items: PhotothequeItem[]): Promise<void> {
+  try {
+    for (const item of items) {
+      await supabase.from('phototheque').upsert({
+        id: item.id,
+        titre: item.titre,
+        description: item.description,
+        categorie: item.categorie,
+        url: item.url,
+        type: item.type,
+        date: item.date,
+        taille: item.taille
+      });
+    }
+  } catch (e) {
+    console.warn('Sync phototheque to Supabase error:', e);
+  }
+}
+
+export async function fetchSupabaseDocuments(): Promise<DocumentItem[]> {
+  try {
+    const { data, error } = await supabase.from('documents').select('*').order('created_at', { ascending: false });
+    if (error || !data || data.length === 0) {
+      return getStoredData<DocumentItem[]>('lisda_documents', initialDocuments);
+    }
+    return data as DocumentItem[];
+  } catch {
+    return getStoredData<DocumentItem[]>('lisda_documents', initialDocuments);
+  }
+}
+
+export async function syncSupabaseDocuments(items: DocumentItem[]): Promise<void> {
+  try {
+    for (const doc of items) {
+      await supabase.from('documents').upsert({
+        id: doc.id,
+        titre: doc.titre,
+        categorie: doc.categorie,
+        annee: doc.annee,
+        url: doc.url,
+        taille: doc.taille,
+        file_name: doc.file_name,
+        file_type: doc.file_type,
+        telechargements: doc.telechargements || 0
+      });
+    }
+  } catch (e) {
+    console.warn('Sync documents to Supabase error:', e);
   }
 }

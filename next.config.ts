@@ -2,14 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
+        hostname: '**',
       },
       {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
+        protocol: 'http',
+        hostname: '**',
       },
     ],
   },
@@ -19,4 +20,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-

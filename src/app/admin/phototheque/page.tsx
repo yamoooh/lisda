@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PhotothequeItem, initialPhototheque, getStoredData, setStoredData } from '@/lib/adminData';
+import { PhotothequeItem, initialPhototheque, getStoredData, setStoredData, fetchSupabasePhototheque, syncSupabasePhototheque } from '@/lib/adminData';
 
 export default function AdminPhotothequePage() {
   const [photos, setPhotos] = useState<PhotothequeItem[]>([]);
@@ -16,10 +16,25 @@ export default function AdminPhotothequePage() {
   const [url, setUrl] = useState('');
   const [type, setType] = useState<'image' | 'video'>('image');
   const [uploadFileName, setUploadFileName] = useState('');
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [previewError, setPreviewError] = useState(false);
+
+  const loadData = async () => {
+    const local = getStoredData<PhotothequeItem[]>('lisda_phototheque', initialPhototheque);
+    setPhotos(local);
+    // Sync with Supabase
+    try {
+      const remote = await fetchSupabasePhototheque();
+      if (remote && remote.length > 0) {
+        setPhotos(remote);
+        setStoredData('lisda_phototheque', remote);
+      }
+    } catch (e) {
+      console.warn('Erreur chargement photothèque:', e);
+    }
+  };
 
   useEffect(() => {
-    setPhotos(getStoredData<PhotothequeItem[]>('lisda_phototheque', initialPhototheque));
+    loadData();
     const handleChange = () => setPhotos(getStoredData<PhotothequeItem[]>('lisda_phototheque', initialPhototheque));
     window.addEventListener('lisda_data_changed', handleChange);
     return () => window.removeEventListener('lisda_data_changed', handleChange);
@@ -31,10 +46,10 @@ export default function AdminPhotothequePage() {
     setCategorie('Vie Associative');
     setDate('Mars 2026');
     setDescription('');
-    setUrl('/images/phototheque-1.webp');
+    setUrl('/images/rassemblement-dombe.webp');
     setType('image');
     setUploadFileName('');
-    setUploadProgress(0);
+    setPreviewError(false);
     setModalOpen(true);
   };
 
@@ -47,7 +62,7 @@ export default function AdminPhotothequePage() {
     setUrl(item.url);
     setType(item.type);
     setUploadFileName('');
-    setUploadProgress(0);
+    setPreviewError(false);
     setModalOpen(true);
   };
 
@@ -60,7 +75,8 @@ export default function AdminPhotothequePage() {
       }
       setUploadFileName(file.name);
       setType(file.type.startsWith('video') ? 'video' : 'image');
-      // Simulate direct preview URL
+      setPreviewError(false);
+
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
@@ -71,12 +87,14 @@ export default function AdminPhotothequePage() {
     }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!titre.trim()) return;
 
+    let updated: PhotothequeItem[] = [];
+
     if (editingItem) {
-      const updated = photos.map(p => p.id === editingItem.id ? {
+      updated = photos.map(p => p.id === editingItem.id ? {
         ...p,
         titre,
         categorie,
@@ -85,8 +103,6 @@ export default function AdminPhotothequePage() {
         url: url || p.url,
         type
       } : p);
-      setStoredData('lisda_phototheque', updated);
-      setPhotos(updated);
     } else {
       const newItem: PhotothequeItem = {
         id: 'photo-' + Date.now(),
@@ -94,22 +110,27 @@ export default function AdminPhotothequePage() {
         categorie,
         date,
         description,
-        url: url || '/images/phototheque-1.webp',
+        url: url || '/images/rassemblement-dombe.webp',
         type,
         taille: uploadFileName ? 'Fichier importé' : '1.4 Mo'
       };
-      const updated = [newItem, ...photos];
-      setStoredData('lisda_phototheque', updated);
-      setPhotos(updated);
+      updated = [newItem, ...photos];
     }
+
+    setStoredData('lisda_phototheque', updated);
+    setPhotos(updated);
     setModalOpen(false);
+
+    // Auto deploy / sync to Supabase database
+    await syncSupabasePhototheque(updated);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Voulez-vous supprimer ce média de la photothèque ?')) {
       const updated = photos.filter(p => p.id !== id);
       setStoredData('lisda_phototheque', updated);
       setPhotos(updated);
+      await syncSupabasePhototheque(updated);
     }
   };
 
@@ -121,11 +142,11 @@ export default function AdminPhotothequePage() {
           <div className="flex items-center gap-2 text-xs font-bold text-[#ba6d14] uppercase tracking-wider mb-1">
             <span>Médias & Galerie</span>
             <span>•</span>
-            <span>Limite 100 Mo</span>
+            <span>Déploiement Automatique</span>
           </div>
           <h1 className="text-2xl font-extrabold text-[#083415]">Photothèque & Vidéos</h1>
           <p className="text-xs text-gray-500 mt-1">
-            Gérez les {photos.length} photos et reportages vidéo présentés sur /phototheque.
+            Gérez les {photos.length} photos et reportages vidéo affichés en direct sur /phototheque.
           </p>
         </div>
 
@@ -143,13 +164,21 @@ export default function AdminPhotothequePage() {
         {photos.map((item) => (
           <div key={item.id} className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
             <div>
-              <div className="h-44 w-full bg-gray-900 relative">
+              <div className="h-44 w-full bg-[#f0eee9] relative overflow-hidden flex items-center justify-center">
                 {item.type === 'video' ? (
                   <div className="w-full h-full flex items-center justify-center bg-gray-800 text-white">
                     <span className="text-3xl">🎥</span>
                   </div>
                 ) : (
-                  <img src={item.url} alt={item.titre} className="w-full h-full object-cover" />
+                  <img
+                    src={item.url}
+                    alt={item.titre}
+                    onError={(e) => {
+                      // Fallback to official default image if custom path fails
+                      (e.currentTarget as HTMLImageElement).src = '/images/rassemblement-dombe.webp';
+                    }}
+                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                  />
                 )}
                 <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/95 text-[#083415] shadow-sm">
                   {item.categorie}
@@ -204,6 +233,35 @@ export default function AdminPhotothequePage() {
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
+              {/* Live Preview Box */}
+              <div>
+                <label className="block font-bold text-[#083415] mb-1">Aperçu en direct du média</label>
+                <div className="h-40 w-full rounded-2xl bg-[#f5f3ee] overflow-hidden border border-gray-200 relative flex items-center justify-center">
+                  {url ? (
+                    type === 'video' ? (
+                      <div className="flex items-center justify-center text-gray-700 font-bold gap-2">
+                        <span className="text-3xl">🎥</span>
+                        <span>Vidéo prête</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={url}
+                        alt="Aperçu"
+                        onError={() => setPreviewError(true)}
+                        className="w-full h-full object-cover"
+                      />
+                    )
+                  ) : (
+                    <span className="text-gray-400 font-semibold">Aucun média sélectionné</span>
+                  )}
+                  {previewError && (
+                    <div className="absolute inset-0 bg-red-50 flex items-center justify-center text-red-600 text-[11px] font-bold p-2 text-center">
+                      ⚠️ URL non valide. Veuillez importer un fichier ci-dessous.
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label className="block font-bold text-[#083415] mb-1">Titre de la photo / vidéo</label>
                 <input
@@ -250,7 +308,7 @@ export default function AdminPhotothequePage() {
               {/* Upload Zone (Max 100 Mo) */}
               <div>
                 <label className="block font-bold text-[#083415] mb-1">
-                  Fichier Média (JPG, PNG, WebP, MP4, MOV • Max 100 Mo)
+                  Changer le fichier (JPG, PNG, WebP, MP4, MOV • Max 100 Mo)
                 </label>
                 <div className="border-2 border-dashed border-gray-300 hover:border-[#083415] rounded-2xl p-4 text-center cursor-pointer bg-[#fbf9f4] transition-colors relative">
                   <input
@@ -262,9 +320,9 @@ export default function AdminPhotothequePage() {
                   <div className="space-y-1">
                     <span className="text-2xl">📁</span>
                     <p className="font-bold text-gray-700">
-                      {uploadFileName || 'Cliquez ou glissez un fichier ici'}
+                      {uploadFileName || 'Cliquez ou glissez une nouvelle image ici'}
                     </p>
-                    <p className="text-[10px] text-gray-400">Limite autorisée : 100 Mo par élément</p>
+                    <p className="text-[10px] text-gray-400">Remplacement direct & automatique sur le site</p>
                   </div>
                 </div>
               </div>
@@ -283,9 +341,10 @@ export default function AdminPhotothequePage() {
               <div className="flex gap-3 pt-4 border-t border-gray-100">
                 <button
                   type="submit"
-                  className="flex-1 h-11 rounded-full bg-[#083415] hover:bg-[#001d07] text-[#feb323] font-bold text-xs shadow-lg transition-all"
+                  className="flex-1 h-11 rounded-full bg-[#083415] hover:bg-[#001d07] text-[#feb323] font-bold text-xs shadow-lg transition-all flex items-center justify-center gap-2"
                 >
-                  {editingItem ? 'Enregistrer les modifications' : 'Ajouter à la photothèque'}
+                  <span>💾</span>
+                  <span>{editingItem ? 'Enregistrer et Déployer' : 'Ajouter et Déployer'}</span>
                 </button>
                 <button
                   type="button"
