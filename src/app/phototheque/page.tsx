@@ -33,25 +33,25 @@ export default function PhotothequePage() {
       id: '5',
       titre: 'Séance de travail du Bureau Exécutif LISDA',
       categorie: 'Gouvernance',
-      url: 'https://lh3.googleusercontent.com/aida/AEtjO1XxknWRwNUC7LKKM_x4Wlpb1WIbQSeRfkAVfY6MQbNkZA_ksAifuaVjLQPadw3xnlbp6pyVRi4N4v598C95z2w4MaAW5t0Kuop14PYz2zPUk2PaXjMSeBiL9z-1FF_wmV28-6ZoAK5VNiLtYyWnXijVFOC_Q0LB6OMm6YvWxJkndZMWUNCmTF1sRtnLjjroyjGUCw5n9oAIS4gollvJjK516KrpZWWJDlyHklMmBOdRVu_e4oAaMSQbC_HH'
+      url: '/images/bureau-executif.webp'
     },
     {
       id: '6',
       titre: 'Inspection des mangroves littorales atlantiques',
       categorie: 'Climat & Littoral',
-      url: 'https://lh3.googleusercontent.com/aida/AEtjO1WsyIzKPZ683w0klF6bC9fo1n72LRD-JobZ0xMkktIVDEm5elWDlj6QYG3RgoXX6oxlZ_130dN5dPeXSnY61_bgXsmlt1tDQlD_iQyfMgZC-XFbqATcJNiEBxWgfjMmNzBbc938O-kInRC4ooGJgtO0zqa613TsOnEyqxSZ5KB7x6IWbEphBMJPswrq8yHiYy2tFs2hxld-x_t8-KXfJPZ8OZtu8glRhvqeZuCUMCl-O8EGXl2ItQUQB9ge'
+      url: '/images/inspection-mangroves.webp'
     },
     {
       id: '7',
       titre: 'Distribution d\'actes d\'état-civil aux familles Bagyeli',
       categorie: 'Droits Autochtones',
-      url: 'https://lh3.googleusercontent.com/aida/AEtjO1Upk9p7p4sPpCDuXHZAWWa8T_nxiY9RrxRuzc9lK-C3CBf_fH8JocH7DZVFwuTJ6A874Vex13q1IPrhjPrYseL-HmRdHxYq1mlsWbsCd8_paNgg9hxkLsD7bJ2aAMkJ8kVrbvLyDq1Sy7ht8GE9OeLUQ3z9T6yYMuoxAZyQU7TEgH1fVz5jhg-FIQHtKW2TAuJVBRqDLcGb-2JeZ5UMxIogckUgvJUSZfd21xO0FnzupegibHAHcY6tzaeT'
+      url: '/images/distribution-etat-civil.webp'
     },
     {
       id: '8',
       titre: 'Pépinière d\'arbres autochtones du Sud Cameroun',
       categorie: 'Agroécologie',
-      url: 'https://lh3.googleusercontent.com/aida/AEtjO1USdvAjMpwTyYKCaafQ4AM_0htx06M07r5wPyXIshWOCCE1IO3L4ZBYrhCk6jB45FUtqTa_dWK4DWT7KhYVHfFvDPcagpTwl2BjYkae3P_7axhf8pEJo37ma_UkkOnw8T8W1O3LXcREEP1Pt9E4slDdpLIb1bhwFDKF7gh0pEnYnXTj94gjoBeLIAtLyljcfvE7GL-tsS03-hNaSaS4Io_84vLeqEq93eKyiOsENxG7_YI0QV3tEKapcm0'
+      url: '/images/pepiniere-arbres.webp'
     }
   ];
 
