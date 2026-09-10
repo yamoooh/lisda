@@ -7,6 +7,8 @@ export interface AdminUser {
   role: 'Super-Administrateur' | 'Administrateur' | 'Éditeur';
   actif: boolean;
   password?: string;
+  reset_code?: string;
+  reset_code_expires?: string;
   date_creation: string;
 }
 
@@ -98,6 +100,18 @@ export interface NewsletterItem {
   date_inscription: string;
   actif: boolean;
 }
+
+export const initialAdminUsers: AdminUser[] = [
+  {
+    id: 'admin-root',
+    email: 'patrice_segbe@yahoo.fr',
+    nom: 'NSEGBE Patrice',
+    role: 'Super-Administrateur',
+    actif: true,
+    password: 'AdminLISDA2026!',
+    date_creation: '2026-03-01T00:00:00.000Z'
+  }
+];
 
 export const initialActualites: ActualiteItem[] = [
   {
@@ -455,6 +469,34 @@ export function setStoredData<T>(key: string, value: T): void {
 }
 
 // Supabase sync helpers
+export async function fetchSupabaseAdminUsers(): Promise<AdminUser[]> {
+  try {
+    const { data, error } = await supabase.from('admin_users').select('*').order('created_at', { ascending: true });
+    if (error || !data || data.length === 0) {
+      return getStoredData<AdminUser[]>('lisda_admin_users', initialAdminUsers);
+    }
+    return data as AdminUser[];
+  } catch {
+    return getStoredData<AdminUser[]>('lisda_admin_users', initialAdminUsers);
+  }
+}
+
+export async function syncSupabaseAdminUser(admin: AdminUser): Promise<void> {
+  try {
+    await supabase.from('admin_users').upsert({
+      id: admin.id,
+      email: admin.email.toLowerCase().trim(),
+      nom: admin.nom,
+      password: admin.password || 'AdminLISDA2026!',
+      role: admin.role,
+      actif: admin.actif,
+      updated_at: new Date().toISOString()
+    });
+  } catch (e) {
+    console.warn('Sync admin to Supabase error:', e);
+  }
+}
+
 export async function fetchSupabasePhototheque(): Promise<PhotothequeItem[]> {
   try {
     const { data, error } = await supabase.from('phototheque').select('*').order('created_at', { ascending: false });

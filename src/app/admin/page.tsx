@@ -15,12 +15,15 @@ import {
   initialMembres,
   initialDonateurs,
   initialMessages,
+  initialAdminUsers,
   getStoredData, 
-  setStoredData 
+  setStoredData,
+  fetchSupabaseAdminUsers,
+  syncSupabaseAdminUser
 } from '@/lib/adminData';
 
 export default function AdminPage() {
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>(initialAdminUsers);
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -31,17 +34,19 @@ export default function AdminPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // First admin setup states
-  const [isSettingUpFirstAdmin, setIsSettingUpFirstAdmin] = useState(false);
-  const [firstAdminNom, setFirstAdminNom] = useState('');
-  const [firstAdminEmail, setFirstAdminEmail] = useState('');
-  const [firstAdminPassword, setFirstAdminPassword] = useState('');
-
-  // Forgot password modal state
+  // Forgot password flow states
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1); // 1 = enter email, 2 = enter code & new password
   const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [enteredCode, setEnteredCode] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccessMessage, setForgotSuccessMessage] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
 
   // Dashboard stats states
   const [actualites, setActualites] = useState<ActualiteItem[]>([]);
@@ -51,11 +56,25 @@ export default function AdminPage() {
   const [messages, setMessages] = useState<MessageContactItem[]>([]);
 
   useEffect(() => {
-    const loadedAdmins = getStoredData<AdminUser[]>('lisda_admin_users', []);
+    // Initial load from local and Supabase
     const activeAdmin = getStoredData<AdminUser | null>('lisda_active_admin', null);
-    
-    setAdmins(loadedAdmins);
     setCurrentAdmin(activeAdmin);
+
+    const loadAdminsFromDb = async () => {
+      try {
+        const remoteAdmins = await fetchSupabaseAdminUsers();
+        if (remoteAdmins && remoteAdmins.length > 0) {
+          setAdmins(remoteAdmins);
+          setStoredData('lisda_admin_users', remoteAdmins);
+        } else {
+          setAdmins(getStoredData<AdminUser[]>('lisda_admin_users', initialAdminUsers));
+        }
+      } catch {
+        setAdmins(getStoredData<AdminUser[]>('lisda_admin_users', initialAdminUsers));
+      }
+    };
+
+    loadAdminsFromDb();
 
     setActualites(getStoredData<ActualiteItem[]>('lisda_actualites', initialActualites));
     setPhototheque(getStoredData<PhotothequeItem[]>('lisda_phototheque', initialPhototheque));
@@ -66,7 +85,7 @@ export default function AdminPage() {
     setIsLoaded(true);
 
     const handleDataChange = () => {
-      setAdmins(getStoredData<AdminUser[]>('lisda_admin_users', []));
+      setAdmins(getStoredData<AdminUser[]>('lisda_admin_users', initialAdminUsers));
       setCurrentAdmin(getStoredData<AdminUser | null>('lisda_active_admin', null));
       setActualites(getStoredData<ActualiteItem[]>('lisda_actualites', initialActualites));
       setPhototheque(getStoredData<PhotothequeItem[]>('lisda_phototheque', initialPhototheque));
@@ -80,105 +99,186 @@ export default function AdminPage() {
   }, []);
 
   // Handle Login
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     setAuthSuccess('');
+    setIsLoggingIn(true);
 
-    // If no admin exists at all
-    if (admins.length === 0) {
-      setAuthError("Aucun compte administrateur n'existe encore. Veuillez initialiser le premier compte racine.");
-      return;
-    }
-
-    const foundAdmin = admins.find(a => a.email.toLowerCase() === email.trim().toLowerCase());
-    
-    if (foundAdmin) {
-      if (!foundAdmin.actif) {
-        setAuthError("Ce compte administrateur a été désactivé par la coordination.");
-        return;
+    try {
+      // Re-fetch latest admins from Supabase to guarantee password freshness
+      let currentAdminsList = admins;
+      try {
+        const remote = await fetchSupabaseAdminUsers();
+        if (remote && remote.length > 0) {
+          currentAdminsList = remote;
+          setAdmins(remote);
+          setStoredData('lisda_admin_users', remote);
+        }
+      } catch (err) {
+        console.warn('Fallback to local admins list:', err);
       }
 
-      if (foundAdmin.password && foundAdmin.password !== password) {
-        setAuthError("Mot de passe incorrect. Veuillez vérifier votre saisie.");
-        return;
-      }
+      const inputEmail = email.trim().toLowerCase();
+      const inputPassword = password;
 
-      // If no password was stored previously, save the current password
-      if (!foundAdmin.password && password) {
-        foundAdmin.password = password;
-        const updatedAdmins = admins.map(a => a.id === foundAdmin.id ? foundAdmin : a);
-        setStoredData('lisda_admin_users', updatedAdmins);
-      }
+      // Find admin
+      let foundAdmin = currentAdminsList.find(a => a.email.toLowerCase() === inputEmail);
 
-      setStoredData('lisda_active_admin', foundAdmin);
-      setCurrentAdmin(foundAdmin);
-      setAuthSuccess('Connexion réussie ! Redirection en cours...');
-    } else {
-      if (email.trim().toLowerCase() === 'patrice_segbe@yahoo.fr') {
-        const rootAdmin: AdminUser = {
+      // Root fallback match for Patrice NSEGBE
+      if (!foundAdmin && (inputEmail === 'patrice_segbe@yahoo.fr' || inputEmail === 'patrice_segbe@yahoo.com')) {
+        foundAdmin = {
           id: 'admin-root',
           email: 'patrice_segbe@yahoo.fr',
           nom: 'NSEGBE Patrice',
           role: 'Super-Administrateur',
           actif: true,
-          password: password || 'AdminLISDA2026!',
+          password: inputPassword,
           date_creation: new Date().toISOString()
         };
-        const newAdmins = [...admins, rootAdmin];
-        setStoredData('lisda_admin_users', newAdmins);
-        setStoredData('lisda_active_admin', rootAdmin);
-        setAdmins(newAdmins);
-        setCurrentAdmin(rootAdmin);
+        await syncSupabaseAdminUser(foundAdmin);
+      }
+
+      if (!foundAdmin) {
+        setAuthError('Identifiants incorrects ou compte non autorisé.');
+        setIsLoggingIn(false);
         return;
       }
-      setAuthError('Identifiants incorrects ou compte non autorisé.');
+
+      if (!foundAdmin.actif) {
+        setAuthError('Ce compte administrateur a été désactivé par la coordination.');
+        setIsLoggingIn(false);
+        return;
+      }
+
+      // Validate password
+      if (foundAdmin.password && foundAdmin.password !== inputPassword) {
+        setAuthError('Mot de passe incorrect. Veuillez vérifier votre saisie.');
+        setIsLoggingIn(false);
+        return;
+      }
+
+      // Password accepted: Save active admin session
+      setStoredData('lisda_active_admin', foundAdmin);
+      setCurrentAdmin(foundAdmin);
+      setAuthSuccess('Connexion réussie ! Chargement de la console...');
+
+    } catch (err: any) {
+      setAuthError(err.message || 'Une erreur est survenue lors de la connexion.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  // Handle First Admin Creation (One-time only!)
-  const handleCreateFirstAdmin = (e: React.FormEvent) => {
+  // Handle Forgot Password - Step 1: Request Code
+  const handleRequestResetCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstAdminEmail || !firstAdminNom || !firstAdminPassword) {
-      setAuthError('Tous les champs sont requis.');
+    setForgotError('');
+    setForgotSuccessMessage('');
+    setIsResetting(true);
+
+    const targetEmail = forgotEmail.trim().toLowerCase();
+    
+    // Check if admin exists
+    const adminExists = admins.some(a => a.email.toLowerCase() === targetEmail) || 
+                        targetEmail === 'patrice_segbe@yahoo.fr' ||
+                        targetEmail === 'patrice_segbe@yahoo.com';
+
+    if (!adminExists) {
+      setForgotError('Aucun compte administrateur associé à cette adresse email.');
+      setIsResetting(false);
       return;
     }
 
-    const newRootAdmin: AdminUser = {
-      id: 'admin-' + Date.now(),
-      nom: firstAdminNom.trim(),
-      email: firstAdminEmail.trim(),
-      role: 'Super-Administrateur',
-      actif: true,
-      password: firstAdminPassword,
-      date_creation: new Date().toISOString()
-    };
+    // Generate random 6-digit code
+    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setVerificationCode(generatedCode);
 
-    const newAdmins = [newRootAdmin];
-    setStoredData('lisda_admin_users', newAdmins);
-    setStoredData('lisda_active_admin', newRootAdmin);
-    setAdmins(newAdmins);
-    setCurrentAdmin(newRootAdmin);
-    setIsSettingUpFirstAdmin(false);
+    setForgotStep(2);
+    setForgotSuccessMessage(`Code de sécurité généré pour ${forgotEmail} : ${generatedCode}`);
+    setIsResetting(false);
   };
 
-  // Handle Forgot Password
-  const handleForgotPassword = (e: React.FormEvent) => {
+  // Handle Forgot Password - Step 2: Verify Code and Update Password
+  const handleVerifyCodeAndReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setForgotSuccess(true);
-    setTimeout(() => {
-      setShowForgotModal(false);
-      setForgotSuccess(false);
-      setForgotEmail('');
-    }, 3000);
+    setForgotError('');
+    setForgotSuccessMessage('');
+
+    if (enteredCode.trim() !== verificationCode) {
+      setForgotError('Code de vérification invalide. Veuillez saisir le code à 6 chiffres.');
+      return;
+    }
+
+    if (resetNewPassword.length < 6) {
+      setForgotError('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+
+    if (resetNewPassword !== resetConfirmPassword) {
+      setForgotError('Les deux mots de passe ne correspondent pas.');
+      return;
+    }
+
+    setIsResetting(true);
+
+    try {
+      const targetEmail = forgotEmail.trim().toLowerCase();
+      
+      let updatedAdmin: AdminUser | null = null;
+      const updatedAdmins = admins.map(a => {
+        if (a.email.toLowerCase() === targetEmail) {
+          updatedAdmin = { ...a, password: resetNewPassword };
+          return updatedAdmin;
+        }
+        return a;
+      });
+
+      if (!updatedAdmin) {
+        updatedAdmin = {
+          id: 'admin-root',
+          email: targetEmail,
+          nom: 'NSEGBE Patrice',
+          role: 'Super-Administrateur',
+          actif: true,
+          password: resetNewPassword,
+          date_creation: new Date().toISOString()
+        };
+        updatedAdmins.push(updatedAdmin);
+      }
+
+      // Update in Supabase
+      await syncSupabaseAdminUser(updatedAdmin);
+
+      // Update in localStorage
+      setStoredData('lisda_admin_users', updatedAdmins);
+      setAdmins(updatedAdmins);
+
+      setForgotSuccessMessage('✅ Votre mot de passe a été réinitialisé avec succès !');
+
+      setTimeout(() => {
+        setShowForgotModal(false);
+        setForgotStep(1);
+        setForgotEmail('');
+        setEnteredCode('');
+        setResetNewPassword('');
+        setResetConfirmPassword('');
+        setForgotSuccessMessage('');
+        setPassword(resetNewPassword);
+        setEmail(targetEmail);
+      }, 2000);
+
+    } catch (err: any) {
+      setForgotError(err.message || 'Erreur lors de la réinitialisation du mot de passe.');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   if (!isLoaded) return null;
 
-  // VIEW 1: NOT AUTHENTICATED -> LOGIN / SETUP
+  // VIEW 1: NOT AUTHENTICATED -> STRICT LOGIN INTERFACE
   if (!currentAdmin) {
-    const hasAdmins = admins.length > 0;
-
     return (
       <div className="min-h-screen w-full bg-[#fbf9f4] text-[#1b1c19] flex items-center justify-center p-4 py-12">
         <div className="w-full max-w-md">
@@ -187,6 +287,7 @@ export default function AdminPage() {
             <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[#feb323]/20 blur-3xl"></div>
 
             <div className="relative z-10 flex flex-col items-center">
+              {/* Official Brand Logo */}
               <div className="flex flex-col items-center text-center">
                 <div className="relative w-20 h-20 mb-3 bg-white rounded-2xl p-2 shadow-md border border-gray-100">
                   <Image src="/logo-officiel.png" alt="Logo LISDA ONG" width={80} height={80} className="object-contain" priority />
@@ -201,6 +302,7 @@ export default function AdminPage() {
                 </p>
               </div>
 
+              {/* Status badge */}
               <div className="mt-4 flex items-center gap-2 rounded-full bg-[#f0eee9] px-3.5 py-1 shadow-sm">
                 <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
                 <span className="text-[10px] font-bold text-[#083415] uppercase tracking-wider">
@@ -208,144 +310,110 @@ export default function AdminPage() {
                 </span>
               </div>
 
+              {/* Alerts */}
               {authError && (
-                <div className="w-full mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-center gap-2">
+                <div className="w-full mt-4 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
                   <span>⚠️</span>
                   <span>{authError}</span>
                 </div>
               )}
               {authSuccess && (
-                <div className="w-full mt-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+                <div className="w-full mt-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
                   <span>✅</span>
                   <span>{authSuccess}</span>
                 </div>
               )}
 
-              {!hasAdmins || isSettingUpFirstAdmin ? (
-                <div className="w-full mt-6 space-y-4">
-                  <div className="p-3.5 rounded-2xl bg-[#feb323]/20 border border-[#feb323]/50 text-xs text-[#6b4800] space-y-1">
-                    <p className="font-bold">⚡ Initialisation du premier compte administrateur</p>
-                    <p>Aucun administrateur n'est encore configuré. Ce premier compte obtiendra les privilèges Super-Admin racine.</p>
+              {/* STANDARD LOGIN FORM */}
+              <form onSubmit={handleLogin} className="w-full mt-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#083415] mb-1 flex justify-between">
+                    <span>Adresse Email *</span>
+                    <span className="text-gray-400 font-normal">Compte Super-Admin</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Patrice_segbe@yahoo.fr"
+                      className="w-full h-12 pl-11 pr-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#083415] transition-all"
+                    />
+                    <span className="absolute left-4 top-3.5 text-gray-400">✉️</span>
                   </div>
-
-                  <form onSubmit={handleCreateFirstAdmin} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-[#083415] mb-1">Nom complet du Coordonnateur</label>
-                      <input
-                        type="text"
-                        required
-                        value={firstAdminNom}
-                        onChange={(e) => setFirstAdminNom(e.target.value)}
-                        placeholder="Ex: Patrice NSEGBE"
-                        className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#083415]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-[#083415] mb-1">Email institutionnel</label>
-                      <input
-                        type="email"
-                        required
-                        value={firstAdminEmail}
-                        onChange={(e) => setFirstAdminEmail(e.target.value)}
-                        placeholder="Patrice_segbe@yahoo.fr"
-                        className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#083415]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-[#083415] mb-1">Mot de passe racine (8+ caractères)</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={8}
-                        value={firstAdminPassword}
-                        onChange={(e) => setFirstAdminPassword(e.target.value)}
-                        placeholder="••••••••••••"
-                        className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#083415]"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="w-full h-12 rounded-full bg-[#083415] hover:bg-[#001d07] text-[#feb323] font-bold text-sm shadow-xl transition-all flex items-center justify-center gap-2"
-                    >
-                      <span>🛡️</span>
-                      <span>Créer le premier compte Super-Admin</span>
-                    </button>
-                  </form>
                 </div>
-              ) : (
-                <form onSubmit={handleLogin} className="w-full mt-6 space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-[#083415] mb-1 flex justify-between">
-                      <span>Identifiant professionnel</span>
-                      <span className="text-gray-400 font-normal">Requis</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="nom@lisda-ong.org"
-                        className="w-full h-12 pl-11 pr-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#083415] transition-all"
-                      />
-                      <span className="absolute left-4 top-3.5 text-gray-400">✉️</span>
-                    </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-[#083415] mb-1 flex justify-between">
-                      <span>Clé d'accès sécurisée</span>
-                      <span className="text-gray-400 font-normal">8+ caractères</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••••••"
-                        className="w-full h-12 pl-11 pr-11 rounded-full bg-[#f5f3ee] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#083415] transition-all"
-                      />
-                      <span className="absolute left-4 top-3.5 text-gray-400">🔒</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-3.5 text-gray-400 hover:text-gray-600 text-xs font-bold"
-                      >
-                        {showPassword ? 'Masquer' : 'Afficher'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="w-4 h-4 rounded accent-[#083415]"
-                      />
-                      <span className="text-gray-600 font-medium">Garder ma session active</span>
-                    </label>
+                <div>
+                  <label className="block text-xs font-bold text-[#083415] mb-1 flex justify-between">
+                    <span>Mot de passe *</span>
+                    <span className="text-gray-400 font-normal">Secret</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full h-12 pl-11 pr-20 rounded-full bg-[#f5f3ee] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#083415] transition-all"
+                    />
+                    <span className="absolute left-4 top-3.5 text-gray-400">🔒</span>
                     <button
                       type="button"
-                      onClick={() => setShowForgotModal(true)}
-                      className="text-[#805600] font-bold hover:underline"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-3.5 text-gray-500 hover:text-gray-800 text-xs font-bold px-2 py-0.5 rounded"
                     >
-                      Mot de passe oublié ?
+                      {showPassword ? 'Masquer' : 'Afficher'}
                     </button>
                   </div>
+                </div>
 
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded accent-[#083415]"
+                    />
+                    <span className="text-gray-600 font-medium">Garder ma session active</span>
+                  </label>
                   <button
-                    type="submit"
-                    className="w-full h-12 rounded-full bg-[#083415] hover:bg-[#001d07] text-[#feb323] font-extrabold text-sm shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                    type="button"
+                    onClick={() => {
+                      setForgotEmail(email || 'Patrice_segbe@yahoo.fr');
+                      setForgotStep(1);
+                      setForgotError('');
+                      setForgotSuccessMessage('');
+                      setShowForgotModal(true);
+                    }}
+                    className="text-[#ba6d14] font-bold hover:underline"
                   >
-                    <span>🔓</span>
-                    <span>Se connecter à la console</span>
+                    Mot de passe oublié ?
                   </button>
-                </form>
-              )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className={`w-full h-12 rounded-full bg-[#083415] hover:bg-[#001d07] text-[#feb323] font-extrabold text-sm shadow-xl transition-all flex items-center justify-center gap-2 ${
+                    isLoggingIn ? 'opacity-75 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isLoggingIn ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-[#feb323] border-t-transparent rounded-full animate-spin"></div>
+                      <span>Vérification des accès...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🔓</span>
+                      <span>Se connecter à la console</span>
+                    </>
+                  )}
+                </button>
+              </form>
 
               <div className="mt-8 pt-6 border-t border-gray-100 w-full text-center">
                 <Link href="/" className="text-xs text-gray-500 hover:text-[#083415] font-semibold transition-colors">
@@ -356,13 +424,17 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* MODAL MOT DE PASSE OUBLIÉ (Code de vérification + Réinitialisation) */}
         {showForgotModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl border border-gray-100">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                 <div className="flex items-center gap-2 text-[#083415]">
-                  <span className="text-xl">📩</span>
-                  <h3 className="font-extrabold text-base">Réinitialisation d'accès</h3>
+                  <span className="text-xl">🔑</span>
+                  <div>
+                    <h3 className="font-extrabold text-base">Réinitialisation d'accès</h3>
+                    <p className="text-[10px] text-gray-500">Super-Administrateur LISDA</p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setShowForgotModal(false)}
@@ -372,37 +444,117 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Saisissez votre adresse email institutionnelle. Un lien sécurisé à validité temporaire (15 minutes) vous sera immédiatement envoyé.
-              </p>
-
-              {forgotSuccess ? (
-                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold text-center">
-                  ✅ Un lien de réinitialisation sécurisé a été transmis à votre adresse email.
+              {forgotError && (
+                <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+                  ⚠️ {forgotError}
                 </div>
-              ) : (
-                <form onSubmit={handleForgotPassword} className="space-y-3">
-                  <input
-                    type="email"
-                    required
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="coordination@lisda-ong.org"
-                    className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#083415]"
-                  />
+              )}
+
+              {forgotSuccessMessage && (
+                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold text-center">
+                  {forgotSuccessMessage}
+                </div>
+              )}
+
+              {forgotStep === 1 ? (
+                /* STEP 1 : Enter Super-Admin Email */
+                <form onSubmit={handleRequestResetCode} className="space-y-4 text-xs">
+                  <p className="text-gray-600 leading-relaxed">
+                    Saisissez votre adresse email de Super-Administrateur. Un code de sécurité sera généré pour vous permettre de définir un nouveau mot de passe.
+                  </p>
+                  <div>
+                    <label className="block font-bold text-[#083415] mb-1">Email Super-Administrateur</label>
+                    <input
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="Patrice_segbe@yahoo.fr"
+                      className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#083415]"
+                    />
+                  </div>
                   <div className="flex gap-2 pt-2">
                     <button
                       type="submit"
-                      className="flex-1 h-10 rounded-full bg-[#083415] text-[#feb323] font-bold text-xs hover:bg-[#001d07] transition-all"
+                      disabled={isResetting}
+                      className="flex-1 h-11 rounded-full bg-[#083415] text-[#feb323] font-bold text-xs hover:bg-[#001d07] transition-all shadow-md"
                     >
-                      Envoyer le lien
+                      {isResetting ? 'Génération...' : 'Générer le code de sécurité'}
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowForgotModal(false)}
-                      className="px-4 h-10 rounded-full bg-gray-100 text-gray-700 font-bold text-xs hover:bg-gray-200"
+                      className="px-5 h-11 rounded-full bg-gray-100 text-gray-700 font-bold text-xs hover:bg-gray-200"
                     >
                       Annuler
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* STEP 2 : Enter Verification Code + New Password */
+                <form onSubmit={handleVerifyCodeAndReset} className="space-y-3.5 text-xs">
+                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-[#6b4800] space-y-1">
+                    <p className="font-bold">🔐 Code de confirmation :</p>
+                    <p className="font-mono text-sm tracking-widest font-black text-[#083415] bg-white/80 p-2 rounded-xl text-center">
+                      {verificationCode}
+                    </p>
+                    <p className="text-[10px] text-gray-500">Saisissez ce code ci-dessous pour confirmer votre identité.</p>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-[#083415] mb-1">Code de sécurité reçu (6 chiffres)</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      value={enteredCode}
+                      onChange={(e) => setEnteredCode(e.target.value)}
+                      placeholder="Ex: 849201"
+                      className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-center font-mono font-bold text-sm tracking-widest focus:outline-none focus:ring-2 focus:ring-[#083415]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-[#083415] mb-1">Nouveau mot de passe (6+ caractères)</label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#083415]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-[#083415] mb-1">Confirmer le nouveau mot de passe</label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      value={resetConfirmPassword}
+                      onChange={(e) => setResetConfirmPassword(e.target.value)}
+                      placeholder="••••••••••••"
+                      className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#083415]"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="submit"
+                      disabled={isResetting}
+                      className="flex-1 h-11 rounded-full bg-[#083415] text-[#feb323] font-bold text-xs hover:bg-[#001d07] transition-all shadow-md flex items-center justify-center gap-1.5"
+                    >
+                      <span>💾</span>
+                      <span>Enregistrer et Déverrouiller</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForgotStep(1)}
+                      className="px-4 h-11 rounded-full bg-gray-100 text-gray-700 font-bold text-xs hover:bg-gray-200"
+                    >
+                      Retour
                     </button>
                   </div>
                 </form>
@@ -414,7 +566,7 @@ export default function AdminPage() {
     );
   }
 
-  // VIEW 2: AUTHENTICATED -> DASHBOARD
+  // VIEW 2: AUTHENTICATED -> COMPLETE DASHBOARD
   const totalDonsAmount = donateurs.reduce((acc, curr) => acc + (curr.montant || 0), 0);
   const unreadMessagesCount = messages.filter(m => !m.lu).length;
 

@@ -1,10 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AdminUser, getStoredData, setStoredData } from '@/lib/adminData';
+import { 
+  AdminUser, 
+  initialAdminUsers,
+  getStoredData, 
+  setStoredData, 
+  fetchSupabaseAdminUsers, 
+  syncSupabaseAdminUser 
+} from '@/lib/adminData';
 
 export default function AdminUtilisateursPage() {
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>(initialAdminUsers);
   const [activeAdmin, setActiveAdmin] = useState<AdminUser | null>(null);
 
   // Modals state
@@ -25,12 +32,25 @@ export default function AdminUtilisateursPage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
-  useEffect(() => {
-    setAdmins(getStoredData<AdminUser[]>('lisda_admin_users', []));
+  const loadData = async () => {
     setActiveAdmin(getStoredData<AdminUser | null>('lisda_active_admin', null));
+    try {
+      const remote = await fetchSupabaseAdminUsers();
+      if (remote && remote.length > 0) {
+        setAdmins(remote);
+        setStoredData('lisda_admin_users', remote);
+      } else {
+        setAdmins(getStoredData<AdminUser[]>('lisda_admin_users', initialAdminUsers));
+      }
+    } catch {
+      setAdmins(getStoredData<AdminUser[]>('lisda_admin_users', initialAdminUsers));
+    }
+  };
 
+  useEffect(() => {
+    loadData();
     const handleChange = () => {
-      setAdmins(getStoredData<AdminUser[]>('lisda_admin_users', []));
+      setAdmins(getStoredData<AdminUser[]>('lisda_admin_users', initialAdminUsers));
       setActiveAdmin(getStoredData<AdminUser | null>('lisda_active_admin', null));
     };
 
@@ -38,14 +58,14 @@ export default function AdminUtilisateursPage() {
     return () => window.removeEventListener('lisda_data_changed', handleChange);
   }, []);
 
-  const handleAddAdmin = (e: React.FormEvent) => {
+  const handleAddAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nom.trim() || !email.trim()) return;
 
     const newAdmin: AdminUser = {
       id: 'admin-' + Date.now(),
       nom: nom.trim(),
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       role,
       actif: true,
       password: initialPassword.trim() || 'LisdaAdmin2026!',
@@ -59,6 +79,9 @@ export default function AdminUtilisateursPage() {
     setNom('');
     setEmail('');
     setInitialPassword('');
+
+    // Sync to Supabase database
+    await syncSupabaseAdminUser(newAdmin);
   };
 
   const openPasswordModal = (admin: AdminUser) => {
@@ -71,7 +94,7 @@ export default function AdminUtilisateursPage() {
     setPasswordModalOpen(true);
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess('');
@@ -88,8 +111,10 @@ export default function AdminUtilisateursPage() {
       return;
     }
 
+    const updatedAdminObj = { ...selectedAdminForPassword, password: newPassword };
+
     const updated = admins.map(a => 
-      a.id === selectedAdminForPassword.id ? { ...a, password: newPassword } : a
+      a.id === selectedAdminForPassword.id ? updatedAdminObj : a
     );
 
     setStoredData('lisda_admin_users', updated);
@@ -102,6 +127,9 @@ export default function AdminUtilisateursPage() {
       setActiveAdmin(updatedActive);
     }
 
+    // Sync to Supabase database
+    await syncSupabaseAdminUser(updatedAdminObj);
+
     setPasswordSuccess(`✅ Mot de passe mis à jour avec succès pour ${selectedAdminForPassword.nom} !`);
 
     setTimeout(() => {
@@ -112,10 +140,22 @@ export default function AdminUtilisateursPage() {
     }, 2000);
   };
 
-  const toggleStatus = (id: string) => {
-    const updated = admins.map(a => a.id === id ? { ...a, actif: !a.actif } : a);
+  const toggleStatus = async (id: string) => {
+    let targetAdmin: AdminUser | null = null;
+    const updated = admins.map(a => {
+      if (a.id === id) {
+        targetAdmin = { ...a, actif: !a.actif };
+        return targetAdmin;
+      }
+      return a;
+    });
+
     setStoredData('lisda_admin_users', updated);
     setAdmins(updated);
+
+    if (targetAdmin) {
+      await syncSupabaseAdminUser(targetAdmin);
+    }
   };
 
   return (
@@ -126,11 +166,11 @@ export default function AdminUtilisateursPage() {
           <div className="flex items-center gap-2 text-xs font-bold text-[#ba6d14] uppercase tracking-wider mb-1">
             <span>Sécurité & Permissions</span>
             <span>•</span>
-            <span>Gestion des Mots de Passe</span>
+            <span>Base Supabase Synchronisée</span>
           </div>
           <h1 className="text-2xl font-extrabold text-[#083415]">Gestion des Administrateurs</h1>
           <p className="text-xs text-gray-500 mt-1">
-            Gérez les comptes d'accès et modifiez les mots de passe des administrateurs.
+            Gérez les comptes autorisés et modifiez les mots de passe de sécurité de la console.
           </p>
         </div>
 
@@ -291,8 +331,8 @@ export default function AdminUtilisateursPage() {
               </div>
 
               <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800 space-y-0.5">
-                <p className="font-bold">🛡️ Sécurité recommandée :</p>
-                <p>Combinez lettres majuscules, minuscules, chiffres et caractères spéciaux.</p>
+                <p className="font-bold">🛡️ Sécurité & Synchronisation :</p>
+                <p>La mise à jour sera immédiatement synchronisée avec la base de données Supabase.</p>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -363,7 +403,7 @@ export default function AdminUtilisateursPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-[#083415] mb-1">Mot de passe temporaire initial</label>
+                <label className="block font-bold text-[#083415] mb-1">Mot de passe initial</label>
                 <input
                   type="text"
                   value={initialPassword}
