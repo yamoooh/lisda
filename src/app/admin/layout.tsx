@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { AdminUser, getStoredData, setStoredData } from '@/lib/adminData';
+import { AdminUser, getStoredData, setStoredData, syncSupabaseAdminUser } from '@/lib/adminData';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,6 +13,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // Profile modal states
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [editNom, setEditNom] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPassword, setEditPassword] = useState('');
+  const [editPhoto, setEditPhoto] = useState('');
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
+  const [isPhotoUploading, setIsPhotoUploading] = useState(false);
+
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Load admins and current session
   useEffect(() => {
@@ -35,6 +46,66 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setStoredData('lisda_active_admin', null);
     setCurrentAdmin(null);
     router.push('/admin');
+  };
+
+  const openProfileModal = () => {
+    if (!currentAdmin) return;
+    setEditNom(currentAdmin.nom || '');
+    setEditEmail(currentAdmin.email || '');
+    setEditPassword(currentAdmin.password || '');
+    setEditPhoto(currentAdmin.photo || '');
+    setProfileSuccessMsg('');
+    setProfileModalOpen(true);
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsPhotoUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (reader.result) {
+        setEditPhoto(reader.result.toString());
+        setIsPhotoUploading(false);
+      }
+    };
+    reader.onerror = () => {
+      alert("Erreur lors de la lecture de la photo de profil.");
+      setIsPhotoUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentAdmin) return;
+
+    const updatedUser: AdminUser = {
+      ...currentAdmin,
+      nom: editNom.trim(),
+      email: editEmail.trim().toLowerCase(),
+      photo: editPhoto,
+      password: editPassword.trim() || currentAdmin.password
+    };
+
+    // Update active admin
+    setStoredData('lisda_active_admin', updatedUser);
+    setCurrentAdmin(updatedUser);
+
+    // Update in all admin users list
+    const updatedList = admins.map(a => a.id === updatedUser.id ? updatedUser : a);
+    setStoredData('lisda_admin_users', updatedList);
+    setAdmins(updatedList);
+
+    // Sync to Supabase
+    await syncSupabaseAdminUser(updatedUser);
+
+    setProfileSuccessMsg('Profil et photo mis à jour avec succès !');
+    setTimeout(() => {
+      setProfileModalOpen(false);
+      setProfileSuccessMsg('');
+    }, 1200);
   };
 
   const navCategories = [
@@ -153,17 +224,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
         </div>
 
-        {/* User Info & Actions Bottom */}
+        {/* User Info & Actions Bottom with Super-Admin Avatar */}
         <div className="p-4 border-t border-[#083415] bg-[#001405]/80 flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#feb323] text-[#083415] font-black flex items-center justify-center text-xs shadow-inner">
-              {currentAdmin.nom ? currentAdmin.nom.substring(0, 2).toUpperCase() : 'AD'}
+          <button
+            onClick={openProfileModal}
+            className="flex items-center gap-3 text-left w-full p-2 rounded-2xl hover:bg-white/10 transition-colors group"
+            title="Personnaliser mon profil Super-Admin"
+          >
+            <div className="relative w-11 h-11 rounded-full bg-[#feb323] text-[#083415] font-black flex items-center justify-center text-xs shadow-inner overflow-hidden flex-shrink-0 border-2 border-[#feb323]">
+              {currentAdmin.photo ? (
+                <img src={currentAdmin.photo} alt={currentAdmin.nom} className="w-full h-full object-cover" />
+              ) : (
+                <span>{currentAdmin.nom ? currentAdmin.nom.substring(0, 2).toUpperCase() : 'AD'}</span>
+              )}
             </div>
             <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-xs font-bold text-white truncate">{currentAdmin.nom}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-bold text-white truncate">{currentAdmin.nom}</span>
+                <span className="text-[10px] opacity-0 group-hover:opacity-100 transition-opacity">✏️</span>
+              </div>
               <span className="text-[10px] text-[#feb323] truncate">{currentAdmin.role}</span>
             </div>
-          </div>
+          </button>
 
           <div className="flex items-center gap-2 pt-1">
             <Link
@@ -172,7 +254,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold transition-colors"
             >
               <span>🌐</span>
-              <span>Voir le site public</span>
+              <span>Voir le site</span>
             </Link>
             <button
               onClick={handleLogout}
@@ -215,14 +297,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
             
             <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
-              <Link
-                href="/admin/utilisateurs"
-                className="text-xs font-bold text-[#083415] hover:text-[#ba6d14] flex items-center gap-1.5 px-2.5 py-1 rounded-full hover:bg-gray-100 transition-colors"
-                title="Gérer les accès et mots de passe"
+              <button
+                onClick={openProfileModal}
+                className="flex items-center gap-2 px-2.5 py-1 rounded-full hover:bg-gray-100 transition-colors"
+                title="Personnaliser mon profil Super-Admin"
               >
-                <span>🔑</span>
-                <span className="hidden sm:inline">{currentAdmin.nom}</span>
-              </Link>
+                <div className="w-7 h-7 rounded-full bg-[#083415] text-[#feb323] font-bold text-[10px] flex items-center justify-center overflow-hidden border border-[#feb323]">
+                  {currentAdmin.photo ? (
+                    <img src={currentAdmin.photo} alt={currentAdmin.nom} className="w-full h-full object-cover" />
+                  ) : (
+                    <span>{currentAdmin.nom ? currentAdmin.nom.substring(0, 2).toUpperCase() : 'AD'}</span>
+                  )}
+                </div>
+                <span className="text-xs font-bold text-[#083415] hidden sm:inline">{currentAdmin.nom}</span>
+              </button>
+
               <button
                 onClick={handleLogout}
                 className="px-3 py-1.5 rounded-full bg-red-50 text-red-700 hover:bg-red-100 text-xs font-bold transition-all"
@@ -240,6 +329,137 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </main>
       </div>
+
+      {/* MODAL PERSONNALISATION PROFIL SUPER-ADMIN */}
+      {profileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-5 shadow-2xl border border-gray-100 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div>
+                <h3 className="font-extrabold text-lg text-[#083415]">Mon Profil Super-Admin</h3>
+                <p className="text-[11px] text-gray-500">Personnalisez votre avatar, vos identifiants et accès</p>
+              </div>
+              <button
+                onClick={() => setProfileModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 flex items-center justify-center font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {profileSuccessMsg && (
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <span>✅</span>
+                <span>{profileSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+              {/* PHOTO UPLOAD & PREVIEW */}
+              <div className="p-4 rounded-2xl bg-[#fbf9f4] border border-[#083415]/10 flex flex-col items-center gap-3 text-center">
+                <div className="relative w-24 h-24 rounded-full bg-[#083415] border-4 border-[#feb323] shadow-md overflow-hidden flex items-center justify-center">
+                  {editPhoto ? (
+                    <img src={editPhoto} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-[#feb323] font-black text-2xl">
+                      {editNom ? editNom.substring(0, 2).toUpperCase() : 'AD'}
+                    </span>
+                  )}
+                </div>
+
+                <input
+                  type="file"
+                  ref={photoInputRef}
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+                
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={isPhotoUploading}
+                    className="px-4 py-2 rounded-full bg-[#083415] hover:bg-[#001d07] text-[#feb323] font-bold text-xs shadow-sm transition-all flex items-center gap-1.5"
+                  >
+                    <span>📷</span>
+                    <span>{isPhotoUploading ? 'Chargement...' : 'Importer une photo'}</span>
+                  </button>
+                  {editPhoto && (
+                    <button
+                      type="button"
+                      onClick={() => setEditPhoto('')}
+                      className="px-3 py-2 rounded-full bg-gray-100 hover:bg-red-50 text-red-600 font-bold text-xs transition-colors"
+                    >
+                      Supprimer
+                    </button>
+                  )}
+                </div>
+
+                <input
+                  type="url"
+                  value={editPhoto.startsWith('data:') ? '' : editPhoto}
+                  onChange={(e) => setEditPhoto(e.target.value)}
+                  placeholder="Ou collez une URL de photo..."
+                  className="w-full h-8 px-3 rounded-full bg-white border border-gray-200 text-xs focus:outline-none text-center"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#083415] mb-1">Nom complet</label>
+                <input
+                  type="text"
+                  required
+                  value={editNom}
+                  onChange={(e) => setEditNom(e.target.value)}
+                  className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#083415]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#083415] mb-1">Adresse Email</label>
+                <input
+                  type="email"
+                  required
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-[#083415]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#083415] mb-1">Mot de passe de connexion</label>
+                <input
+                  type="text"
+                  required
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  className="w-full h-11 px-4 rounded-full bg-[#f5f3ee] border border-gray-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#083415]"
+                />
+                <span className="text-[10px] text-gray-400 mt-1 block">
+                  Ce mot de passe est utilisé pour vous connecter sur /admin.
+                </span>
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t border-gray-100">
+                <button
+                  type="submit"
+                  className="flex-1 h-11 rounded-full bg-[#083415] hover:bg-[#001d07] text-[#feb323] font-bold text-xs shadow-lg transition-all"
+                >
+                  Enregistrer mon profil
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProfileModalOpen(false)}
+                  className="px-6 h-11 rounded-full bg-gray-100 text-gray-700 font-bold text-xs hover:bg-gray-200"
+                >
+                  Fermer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ export interface AdminUser {
   nom: string;
   role: 'Super-Administrateur' | 'Administrateur' | 'Éditeur';
   actif: boolean;
+  photo?: string;
   password?: string;
   reset_code?: string;
   reset_code_expires?: string;
@@ -20,6 +21,7 @@ export interface ActualiteItem {
   date: string;
   image: string;
   video_url?: string;
+  type_media?: 'image' | 'video';
   statut: 'publie' | 'brouillon';
 }
 
@@ -51,8 +53,11 @@ export interface EquipeItem {
   id: string;
   nom: string;
   role: string;
+  roleShort?: string;
   bio: string;
-  photo: string;
+  photo?: string;
+  initials?: string;
+  badge?: string;
   email?: string;
   telephone?: string;
   ordre: number;
@@ -107,11 +112,14 @@ export const initialAdminUsers: AdminUser[] = [
     email: 'patrice_segbe@yahoo.fr',
     nom: 'NSEGBE Patrice',
     role: 'Super-Administrateur',
+    photo: 'https://lh3.googleusercontent.com/aida/AEtjO1XxknWRwNUC7LKKM_x4Wlpb1WIbQSeRfkAVfY6MQbNkZA_ksAifuaVjLQPadw3xnlbp6pyVRi4N4v598C95z2w4MaAW5t0Kuop14PYz2zPUk2PaXjMSeBiL9z-1FF_wmV28-6ZoAK5VNiLtYyWnXijVFOC_Q0LB6OMm6YvWxJkndZMWUNCmTF1sRtnLjjroyjGUCw5n9oAIS4gollvJjK516KrpZWWJDlyHklMmBOdRVu_e4oAaMSQbC_HH',
     actif: true,
     password: 'AdminLISDA2026!',
     date_creation: '2026-03-01T00:00:00.000Z'
   }
 ];
+
+export const initialDonationAmounts: number[] = [5000, 10000, 25000, 50000];
 
 export const initialActualites: ActualiteItem[] = [
   {
@@ -121,6 +129,7 @@ export const initialActualites: ActualiteItem[] = [
     categorie: "Agroécologie",
     description: "Plus de 40 agriculteurs de la commune de Kribi ont appris les techniques de semis d'arbres fertilisants pour régénérer les sols dégradés sans intrants chimiques.",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBzYllvG22lMKHQvWROKgpUCyTF8Iy_aH63VOzXTHrPBbO7Gb6lK6RtKKzr3ZJjK8UJ7nDQq_6Eo7rbPwd1gASzVfEhd0PXtOMMgMaY7KS-Wt5F55LHkcDu1qiPNgxuj7wOtEQZPIu9Mklkn5QsCzJjIzz8TKUWM2vPWE8EN5U8GzFx2pEUtUOLlboV0RRQj7h8EC0IyVtkb3AjSNbVBd1kDS-2FC1t4qL_eTxI4j3oh7uvCJSA2i16IA",
+    type_media: 'image',
     statut: 'publie'
   },
   {
@@ -130,6 +139,7 @@ export const initialActualites: ActualiteItem[] = [
     categorie: "Éducation & Droits",
     description: "Remise solennelle de 150 trousseaux scolaires et couverture des frais d'inscription pour encourager la scolarisation des jeunes filles et garçons autochtones.",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDYqfiULPt37uT6NIzHYrsjAfV31CNvfWCNiT0vx1bWEddu-w9Ijaa422NlguLPAhbgkgpEzf_ktaJT9LpYFYrmdeAvFJbKPrrk2jf26uygSwUVx0JUOVKe6qJfxGHiU2LogU0soUFQp52wZA-uUZDePR0OHLkNxQihBbL5iaDtxyfeOdponG9bJ9bRXY9Bh4pOa1BjoIA-zr_fyPynns5Z8petjVo7ynXYVmxnjozkhzzcvduqhO_pDg",
+    type_media: 'image',
     statut: 'publie'
   },
   {
@@ -139,6 +149,7 @@ export const initialActualites: ActualiteItem[] = [
     categorie: "Environnement",
     description: "Création d'un réseau de sentinelles citoyennes chargées de signaler les pollutions industrielles et les risques d'inondation soudaine pour les pêcheurs locaux.",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuABLsyXf98GZN8z2lmhkc9hU_WpnLYLcoGGY5RV4aDn0h5Z5_ViScAKogr1bQnT7AJBbWdyMZx_X1tf_Oy7FzbQM9NZWCzdz6Ue4RmJ0TAQRPWlDaAwGFkxuVEFGL68Ka0_TzIm3D_np4efhEosmZweinGbH870o5QcVp-Go19YjuaudlfWHNH0bUISc6HYMSWy_53o1GxRBJCPwu2mfce3EQg3aC3GsrCXPb-bDRxIq1QtFmlIhC3wVA",
+    type_media: 'image',
     statut: 'publie'
   }
 ];
@@ -277,37 +288,75 @@ export const initialEquipe: EquipeItem[] = [
   {
     id: 'eq-1',
     nom: "NSEGBE Patrice",
-    role: "Président Coordonnateur Exécutif",
-    bio: "Spécialiste du développement durable et de la gestion communautaire des forêts du Bassin du Congo depuis plus de 15 ans.",
-    photo: "https://lh3.googleusercontent.com/aida-public/AB6AXuD9y3E63eL_g6FvD6K9NlYd6F5v4n7Xp_9r-M",
+    role: "Président Coordonnateur & Fondateur",
+    roleShort: "Coordination Générale",
+    bio: "Supervise la gouvernance stratégique, les partenariats institutionnels et le plaidoyer pour les droits coutumiers et la préservation de la forêt littorale.",
+    photo: "https://lh3.googleusercontent.com/aida/AEtjO1XxknWRwNUC7LKKM_x4Wlpb1WIbQSeRfkAVfY6MQbNkZA_ksAifuaVjLQPadw3xnlbp6pyVRi4N4v598C95z2w4MaAW5t0Kuop14PYz2zPUk2PaXjMSeBiL9z-1FF_wmV28-6ZoAK5VNiLtYyWnXijVFOC_Q0LB6OMm6YvWxJkndZMWUNCmTF1sRtnLjjroyjGUCw5n9oAIS4gollvJjK516KrpZWWJDlyHklMmBOdRVu_e4oAaMSQbC_HH",
+    badge: "Coordination & Stratégie",
     email: "Patrice_segbe@yahoo.fr",
     telephone: "+237 677 593 239",
     ordre: 1
   },
   {
     id: 'eq-2',
-    nom: "INIKWA Victoire",
-    role: "Secrétaire Générale & Administration",
-    bio: "Coordonne la gestion administrative, le suivi des partenariats institutionnels et l'encadrement des comités villageois.",
-    photo: "https://lh3.googleusercontent.com/aida-public/AB6AXuD9y3E63eL_g6FvD6K9NlYd6F5v4n7Xp_9r-M",
+    nom: "INIKWA épse NSEGBE Victoire",
+    role: "Secrétaire Générale",
+    roleShort: "Bureau Exécutif",
+    bio: "Supervise l'administration centrale, la tenue des registres légaux et mène activement les programmes d'autonomisation des femmes rurales de l'Océan.",
+    photo: "https://lh3.googleusercontent.com/aida-public/AB6AXuAYrikBM-zkZvEBV-roTc6Wc2qjciqs4mB4KQOZiXQjZU3QBhCTsc9aC8Sz8-U_QvEB8UBSp90V0C1gWgDjmd3yGr73nrYiRf-1V9A7-ImQ5LNcan-EnXFc7h6dzvp3Hnej5g4-iPRwNcmBYmdl8Nv4HjouPngrAqp7pXbU3vB9QbDZjlkiZWwWLjUM-4n9LWpGhoQKkKwDm0IsXxuMeS0uN355imbNuRcYXcdeKdV9s-c3lpqAJ9EHag",
+    badge: "Coordination & Genre",
     email: "secretariat@lisda-ong.org",
     ordre: 2
   },
   {
     id: 'eq-3',
-    nom: "ELIMBI Jean Gustave",
-    role: "Trésorier & Gestion Financière",
-    bio: "Expert en audit et finance solidaire, garant de la transparence et de la traçabilité des subventions et dons.",
-    photo: "https://lh3.googleusercontent.com/aida-public/AB6AXuD9y3E63eL_g6FvD6K9NlYd6F5v4n7Xp_9r-M",
+    nom: "AMBANI OKOUNOU Guy Dénis",
+    role: "Secrétaire Général Adjoint chargé des projets",
+    roleShort: "Gestion de Projets",
+    bio: "Dirige l'ingénierie et le déploiement des opérations agroforestières sur le terrain et coordonne la cartographie participative avec les chefferies.",
+    photo: "https://lh3.googleusercontent.com/aida-public/AB6AXuB0UT0cWfbmyhDL-Tw-TSlI4DyxMWdPqcdSix7e0klhOPqLOLO4qwU2p2fXAy_h-20pRrjuu6aI2ghuPmzMR8dxHqFi7gIrWw5mPdQPAXdxXEuaMKct6Rq2qIc-L5u4dmlvzgNZcZ-UoCgINnT09grbcoeLiq9FRBJB46FKJl_KOY1-17D8trWDngNtvSCLDLy94wPPCaaw20wzT-t5vwU-ymq9ukU92Cz9M5naRT6el9jWF71pMS21_Q",
+    badge: "Opérations & Agroécologie",
     ordre: 3
   },
   {
     id: 'eq-4',
-    nom: "AMBANI OKOUNOU Guy Denis",
-    role: "Directeur des Projets de Terrain",
-    bio: "Ingénieur agronome de terrain, supervise les reboisements côtiers, les pépinières et les missions en forêt profonde.",
-    photo: "https://lh3.googleusercontent.com/aida-public/AB6AXuD9y3E63eL_g6FvD6K9NlYd6F5v4n7Xp_9r-M",
+    nom: "ELIMBI Jean Gustave",
+    role: "Trésorier Comptable",
+    roleShort: "Finance & Audit",
+    bio: "Garantit la traçabilité financière intégrale des dotations, la tenue des états financiers certifiés et la conformité administrative fiscale.",
+    photo: "https://lh3.googleusercontent.com/aida-public/AB6AXuArVKRPzmRVw6VKAB-zf82CvVaLkGO6VKl2X_82JA7hy0vJcGYHSE5_tWYiE5-wdvOcrVmIP3KkKUMt949pNl-8kVS-kipGTmO6FSV1-T5yWZmALnezwQ1ffNnQFZY3xmOkRDFXDQ0En4_Xp1jq98pIOJz3yuXqN25_6vjrE1mYx4bHTO67BPfocMMlyKdb9Eqf9s-KZ0IAkmZwCbnw8cTPmCeA9m4PsL9-5QvQAt_TXHuFsu8thZdBXg",
+    badge: "Traçabilité & Conformité",
     ordre: 4
+  },
+  {
+    id: 'eq-5',
+    nom: "MPOUED Idrice",
+    role: "Commissaire aux Comptes",
+    roleShort: "Contrôle & Transparence",
+    bio: "Assure l'audit interne permanent et indépendant des opérations comptables et certifie l'utilisation transparente des fonds de l'association.",
+    initials: "MI",
+    badge: "Audit Externe & Quitus",
+    ordre: 5
+  },
+  {
+    id: 'eq-6',
+    nom: "NNA BIWOLE MINDJOM Pierre Magloire",
+    role: "Resp. Communication et Relations Publiques",
+    roleShort: "Plaidoyer & Médias",
+    bio: "Porte la parole publique de LISDA auprès des médias nationaux et internationaux et anime les campagnes de sensibilisation environnementale.",
+    initials: "NM",
+    badge: "Influence & Médias",
+    ordre: 6
+  },
+  {
+    id: 'eq-7',
+    nom: "NOUCK NSEGBE Thomas",
+    role: "Censeur de l'Association",
+    roleShort: "Éthique & Statuts",
+    bio: "Garant du strict respect des textes statutaires, du règlement intérieur, et médiateur déontologique pour les actions de bienfaisance.",
+    initials: "NT",
+    badge: "Médiation & Discipline",
+    ordre: 7
   }
 ];
 
@@ -452,6 +501,12 @@ export function getStoredData<T>(key: string, defaultValue: T): T {
       }
     }
 
+    // Auto-migrate equipe if only 4 members were stored
+    if (key === 'lisda_equipe' && Array.isArray(parsed) && parsed.length < 7) {
+      localStorage.setItem(key, JSON.stringify(initialEquipe));
+      return initialEquipe as unknown as T;
+    }
+
     return parsed;
   } catch {
     return defaultValue;
@@ -490,6 +545,7 @@ export async function syncSupabaseAdminUser(admin: AdminUser): Promise<void> {
       password: admin.password || 'AdminLISDA2026!',
       role: admin.role,
       actif: admin.actif,
+      photo: admin.photo || null,
       updated_at: new Date().toISOString()
     });
   } catch (e) {
@@ -557,5 +613,46 @@ export async function syncSupabaseDocuments(items: DocumentItem[]): Promise<void
     }
   } catch (e) {
     console.warn('Sync documents to Supabase error:', e);
+  }
+}
+
+export async function fetchSupabaseDonateurs(): Promise<DonateurItem[]> {
+  try {
+    const { data, error } = await supabase.from('donateurs').select('*').order('date_don', { ascending: false });
+    if (error || !data || data.length === 0) {
+      return getStoredData<DonateurItem[]>('lisda_dons', initialDonateurs);
+    }
+    return data.map((d: any) => ({
+      id: d.id || 'don-' + Math.random(),
+      nom: d.nom || 'Anonyme',
+      prenom: d.prenom || '',
+      montant: Number(d.montant) || 0,
+      type_don: d.type_don || 'Paiement en ligne',
+      anonyme: d.anonyme ?? false,
+      accord_affichage: d.accord_affichage ?? true,
+      date_don: d.date_don ? new Date(d.date_don).toLocaleDateString('fr-FR') : 'Mars 2026',
+      statut: d.statut || 'valide',
+      reference: d.reference
+    }));
+  } catch {
+    return getStoredData<DonateurItem[]>('lisda_dons', initialDonateurs);
+  }
+}
+
+export async function syncSupabaseDonateur(don: DonateurItem): Promise<void> {
+  try {
+    await supabase.from('donateurs').upsert({
+      id: don.id,
+      nom: don.nom,
+      prenom: don.prenom,
+      montant: don.montant,
+      type_don: don.type_don,
+      anonyme: don.anonyme,
+      accord_affichage: don.accord_affichage,
+      statut: don.statut,
+      reference: don.reference
+    });
+  } catch (e) {
+    console.warn('Sync donateur to Supabase error:', e);
   }
 }

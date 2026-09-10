@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import { DonateurItem, initialDonateurs, initialDonationAmounts, getStoredData } from '@/lib/adminData';
 
 export default function FaireUnDonPage() {
+  const [suggestedAmounts, setSuggestedAmounts] = useState<number[]>(initialDonationAmounts);
   const [montant, setMontant] = useState<number>(10000);
   const [montantCustom, setMontantCustom] = useState<string>('');
   const [isCustom, setIsCustom] = useState<boolean>(false);
@@ -15,12 +17,32 @@ export default function FaireUnDonPage() {
   const [email, setEmail] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [publicDonateurs, setPublicDonateurs] = useState<DonateurItem[]>([]);
 
-  const donateursExemples = [
-    { nom: "Mme Clarisse N.", montant: "25 000 FCFA", type: "Don financier" },
-    { nom: "M. Paulin M.", montant: "Kits de papeterie", type: "Don en nature" },
-    { nom: "Fondation Partenaire", montant: "100 000 FCFA", type: "Don financier" }
-  ];
+  useEffect(() => {
+    // Load suggested amounts dynamically
+    const loadedAmounts = getStoredData<number[]>('lisda_donation_amounts', initialDonationAmounts);
+    setSuggestedAmounts(loadedAmounts);
+    if (loadedAmounts.length > 0 && !loadedAmounts.includes(montant)) {
+      setMontant(loadedAmounts[0]);
+    }
+
+    // Load dynamic public donators wall
+    const loadedDons = getStoredData<DonateurItem[]>('lisda_dons', initialDonateurs);
+    const visible = loadedDons.filter(d => d.statut === 'valide' && d.accord_affichage !== false);
+    setPublicDonateurs(visible);
+
+    const handleDataChange = () => {
+      const updatedAmounts = getStoredData<number[]>('lisda_donation_amounts', initialDonationAmounts);
+      setSuggestedAmounts(updatedAmounts);
+
+      const updatedDons = getStoredData<DonateurItem[]>('lisda_dons', initialDonateurs);
+      setPublicDonateurs(updatedDons.filter(d => d.statut === 'valide' && d.accord_affichage !== false));
+    };
+
+    window.addEventListener('lisda_data_changed', handleDataChange);
+    return () => window.removeEventListener('lisda_data_changed', handleDataChange);
+  }, []);
 
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,8 +177,10 @@ export default function FaireUnDonPage() {
               <label className="block text-xs font-bold text-[#083415] uppercase tracking-wider">
                 1. Sélectionner le montant du don (FCFA)
               </label>
+              
+              {/* Dynamic Suggested Amounts Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[5000, 10000, 25000, 50000].map((m) => (
+                {suggestedAmounts.map((m) => (
                   <button
                     key={m}
                     type="button"
@@ -170,12 +194,12 @@ export default function FaireUnDonPage() {
                         : 'border-gray-200 text-gray-700 hover:border-[#083415]'
                     }`}
                   >
-                    {m.toLocaleString()} FCFA
+                    {m.toLocaleString('fr-FR')} FCFA
                   </button>
                 ))}
               </div>
 
-              {/* Case de personnalisation manuelle du don */}
+              {/* Custom Amount Input */}
               <div className="pt-2 space-y-1.5">
                 <label className="block text-xs font-bold text-[#083415] uppercase">
                   Ou saisissez un montant personnalisé (FCFA)
@@ -183,7 +207,7 @@ export default function FaireUnDonPage() {
                 <div className="relative">
                   <input
                     type="number"
-                    min="1000"
+                    min="500"
                     step="500"
                     placeholder="Montant libre (ex: 15 000)"
                     value={isCustom ? montantCustom : ''}
@@ -257,7 +281,7 @@ export default function FaireUnDonPage() {
                 className="w-4 h-4 text-[#083415] accent-[#083415]"
               />
               <label htmlFor="accord" className="text-xs text-gray-600">
-                J'accepte que mon nom figure dans la liste publique des donateurs de LISDA ONG.
+                J'accepte que mon prénom/nom figure dans la liste publique des donateurs de LISDA ONG.
               </label>
             </div>
 
@@ -276,7 +300,7 @@ export default function FaireUnDonPage() {
               ) : (
                 <>
                   <span>🔒</span>
-                  <span>Faire mon don maintenant ({ (isCustom ? (Number(montantCustom) || 0) : montant).toLocaleString() } FCFA)</span>
+                  <span>Faire mon don maintenant ({ (isCustom ? (Number(montantCustom) || 0) : montant).toLocaleString('fr-FR') } FCFA)</span>
                 </>
               )}
             </button>
@@ -306,17 +330,28 @@ export default function FaireUnDonPage() {
         )}
       </div>
 
-      {/* Donors Wall */}
+      {/* DYNAMIC DONORS WALL */}
       <div className="max-w-3xl mx-auto space-y-4">
         <h2 className="text-2xl font-bold text-[#083415] text-center">Nos Donateurs & Partenaires</h2>
+        <p className="text-xs text-gray-500 text-center -mt-2">
+          Un immense merci à toutes les femmes et tous les hommes qui soutiennent nos actions de terrain.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {donateursExemples.map((d, i) => (
-            <div key={i} className="bg-white p-5 rounded-2xl border border-[#083415]/10 text-center space-y-1 shadow-sm">
-              <div className="font-bold text-sm text-[#083415]">{d.nom}</div>
-              <div className="text-xs text-[#ba6d14] font-bold">{d.montant}</div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">{d.type}</div>
+          {publicDonateurs.length === 0 ? (
+            <div className="col-span-3 bg-white p-6 rounded-2xl border border-[#083415]/10 text-center text-gray-500 text-xs">
+              Les premiers donateurs de la campagne apparaîtront ici.
             </div>
-          ))}
+          ) : (
+            publicDonateurs.map((d) => (
+              <div key={d.id} className="bg-white p-5 rounded-2xl border border-[#083415]/10 text-center space-y-1 shadow-sm hover:shadow-md transition-shadow">
+                <div className="font-bold text-sm text-[#083415]">
+                  {d.anonyme ? 'Donateur Anonyme' : `${d.prenom ? d.prenom + ' ' : ''}${d.nom}`.trim()}
+                </div>
+                <div className="text-xs text-[#ba6d14] font-extrabold">{d.montant.toLocaleString('fr-FR')} FCFA</div>
+                <div className="text-[10px] text-gray-500 uppercase tracking-wider">{d.type_don}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

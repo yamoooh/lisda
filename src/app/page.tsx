@@ -20,7 +20,6 @@ export default function Home() {
     return () => window.removeEventListener('lisda_data_changed', handleDataChange);
   }, []);
 
-
   return (
     <div className="flex flex-col w-full">
       {/* Hero Section Stitch avec l'image de fond d'origine */}
@@ -154,7 +153,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Actualités avec les 3 vraies images Stitch */}
+      {/* Actualités avec les images & vidéos Stitch */}
       <section className="py-20 px-4 max-w-7xl mx-auto w-full space-y-12">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -169,9 +168,13 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {actualites.map((actu, idx) => (
             <article key={idx} className="flex flex-col bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all">
-              <div className="relative h-56 w-full overflow-hidden">
-                <img src={actu.image} alt={actu.titre} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-                <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-[11px] font-bold bg-[#083415] text-[#feb323] uppercase">
+              <div className="relative h-56 w-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                {actu.type_media === 'video' || (actu.image && (actu.image.startsWith('data:video') || actu.image.includes('.mp4') || actu.image.includes('.webm'))) ? (
+                  <video src={actu.image} controls className="w-full h-full object-cover" />
+                ) : (
+                  <img src={actu.image} alt={actu.titre} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                )}
+                <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-[11px] font-bold bg-[#083415] text-[#feb323] uppercase shadow-md">
                   {actu.categorie}
                 </span>
               </div>
@@ -198,21 +201,29 @@ export default function Home() {
             </p>
             <div className="pt-2">
               <Link href="/contact" className="inline-flex px-6 py-3 rounded-full bg-[#083415] text-[#feb323] font-bold text-xs hover:bg-[#001d07]">
-                ✉️ Prendre contact avec le bureau de Kribi
+                Localiser nos bureaux à Dombe →
               </Link>
             </div>
           </div>
-
-          <div className="lg:col-span-7">
-            <div className="rounded-3xl overflow-hidden shadow-xl border-4 border-white bg-white p-2">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBg94jxMUkZUi8xhB8dazFUt5GRh13cB42J0FMWArhOOimM0NuNFk94us5vv3N7xI8Icj4BI86ALUcvBnbvTNJEcix77WwYcgB4Maj-xAga17hk8YhJ6NY26_7g_NxphvPUfCsAx1fM1msLp1vLBmiuqJqwcCEmwAJ4cCpAEB0I4djvzkJByK7_c9ynFK6uIhqkCVKM93inZGaN0dpLWVz7a_FrXir-ExZtZ1AqZaqGHI32sq3RpeVzTg"
-                alt="Carte du littoral de Kribi et Dombe"
-                className="w-full h-80 object-cover rounded-2xl"
-              />
-              <div className="p-3 flex justify-between text-xs text-gray-600 font-medium">
-                <span>📍 Coordonnées : 2°56'N, 9°54'E</span>
-                <span className="font-bold text-[#083415]">LISDA Dombe HQ</span>
+          <div className="lg:col-span-7 relative h-80 rounded-2xl overflow-hidden shadow-lg border border-[#083415]/10">
+            <img
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAYf6Nf2Qe7-tY9p-p-rA75aJz5Hw8qgZ7aA1A3o9b_B6C6dE9fGhIjKlMnOpQrStUvWxYz0123456789ABCDEF"
+              alt="Plan de localisation de Dombe Kribi"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+            <div className="absolute inset-0 bg-[#083415]/10 flex items-center justify-center p-6 text-center">
+              <div className="bg-white/95 backdrop-blur-md p-6 rounded-2xl shadow-xl max-w-sm border border-[#083415]/10">
+                <span className="text-3xl block mb-2">📍</span>
+                <h4 className="font-extrabold text-[#083415] text-base">Antenne Principale LISDA</h4>
+                <p className="text-xs text-gray-600 mt-1 font-medium">
+                  Quartier Dombe, Commune de Kribi 1er, Département de l'Océan, Région du Sud, Cameroun.
+                </p>
+                <div className="mt-3 pt-3 border-t border-gray-100 text-[11px] font-bold text-[#ba6d14]">
+                  Ouvert du Lundi au Vendredi : 08h00 - 17h00
+                </div>
               </div>
             </div>
           </div>
