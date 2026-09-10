@@ -5,6 +5,8 @@ import Image from 'next/image';
 
 export default function FaireUnDonPage() {
   const [montant, setMontant] = useState<number>(10000);
+  const [montantCustom, setMontantCustom] = useState<string>('');
+  const [isCustom, setIsCustom] = useState<boolean>(false);
   const [typeDon, setTypeDon] = useState<'argent' | 'nature'>('argent');
   const [accord, setAccord] = useState<boolean>(true);
   const [nom, setNom] = useState<string>('');
@@ -18,7 +20,12 @@ export default function FaireUnDonPage() {
 
   const handlePay = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Redirection vers LeekPay pour valider votre don ponctuel de ${montant.toLocaleString()} FCFA. Merci pour votre soutien à LISDA ONG !`);
+    const finalAmount = isCustom ? Number(montantCustom) : montant;
+    if (!finalAmount || finalAmount <= 0) {
+      alert("Veuillez saisir un montant de don valide.");
+      return;
+    }
+    alert(`Redirection vers LeekPay pour valider votre don ponctuel de ${finalAmount.toLocaleString()} FCFA. Merci pour votre soutien à LISDA ONG !`);
     window.location.href = '/faire-un-don/merci';
   };
 
@@ -82,9 +89,12 @@ export default function FaireUnDonPage() {
                   <button
                     key={m}
                     type="button"
-                    onClick={() => setMontant(m)}
+                    onClick={() => {
+                      setMontant(m);
+                      setIsCustom(false);
+                    }}
                     className={`py-3.5 rounded-2xl border-2 font-bold text-sm transition-all ${
-                      montant === m
+                      montant === m && !isCustom
                         ? 'border-[#feb323] bg-[#feb323]/20 text-[#083415] shadow-sm'
                         : 'border-gray-200 text-gray-700 hover:border-[#083415]'
                     }`}
@@ -92,6 +102,36 @@ export default function FaireUnDonPage() {
                     {m.toLocaleString()} FCFA
                   </button>
                 ))}
+              </div>
+
+              {/* Case de personnalisation manuelle du don */}
+              <div className="pt-3 space-y-1.5">
+                <label className="block text-xs font-bold text-[#083415] uppercase">
+                  Ou saisissez un montant personnalisé (FCFA)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1000"
+                    step="500"
+                    placeholder="Montant libre (ex: 15 000)"
+                    value={isCustom ? montantCustom : ''}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setMontantCustom(val);
+                      setIsCustom(true);
+                      const num = Number(val);
+                      if (num > 0) {
+                        setMontant(num);
+                      }
+                    }}
+                    onFocus={() => setIsCustom(true)}
+                    className={`w-full px-4 py-3 rounded-xl border-2 transition-all text-sm font-bold text-[#083415] focus:outline-none ${
+                      isCustom ? 'border-[#feb323] bg-[#feb323]/10' : 'border-gray-300 focus:border-[#083415]'
+                    }`}
+                  />
+                  <span className="absolute right-4 top-3.5 text-xs font-bold text-[#ba6d14]">FCFA</span>
+                </div>
               </div>
             </div>
 
@@ -137,7 +177,7 @@ export default function FaireUnDonPage() {
               type="submit"
               className="w-full py-4 rounded-full bg-[#feb323] text-[#083415] font-extrabold text-base hover:bg-amber-400 shadow-xl transition-all"
             >
-              🔒 Régler {montant.toLocaleString()} FCFA via LeekPay
+              🔒 Faire mon don maintenant ({ (isCustom ? (Number(montantCustom) || 0) : montant).toLocaleString() } FCFA)
             </button>
           </form>
         ) : (
