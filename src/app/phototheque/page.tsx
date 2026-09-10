@@ -9,25 +9,25 @@ export default function PhotothequePage() {
       id: '1',
       titre: 'Rassemblement communautaire à Dombe',
       categorie: 'Vie Associative',
-      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD_PQc8frk8u8MaK-x5KKldxwQk83SCnpGnTYaX7Ezn7TLN81GB6L08pkidkypFcyoaR9EtGFkl3oP9XrxgRPrYZjsXAqOcrzEWase9JPC9ar-Cgh542k3fnRummV3pWJdD0htjI5iRaGxD-gNo3xWsQB4ify_64UoQDPu5XrUL6jbfGlf5eBjZGJnZ2J1tIO0Vef5psxO3xK9rICVJyqKAlYJG6Ga50neQuOOVv2yCkaOW621DVjypPA'
+      url: '/images/rassemblement-dombe.webp'
     },
     {
       id: '2',
       titre: 'Formation agroforestière des femmes rurales',
       categorie: 'Autonomisation',
-      url: 'https://lh3.googleusercontent.com/aida/AEtjO1VFbSmGSavr_HPFZmQoHX-RIpwQKN-SssYZHRDgD_GB3NkJXOpgKzw-q879xtyefgHJGcJiNRJBNwzLW7KSTgwWud1AH84pZVLtXDzRH4hAZzHaCHtixpezp7EPXIm3_60OMUCauAyHmGJhdcFkXM56VmEt824ZbC9kONRx3PPsXnMdHe2IeHGcsnSBhT63E2lk9LwlSVPrSLYxPanA2miZkxzIFskg2uAxLCjeG-X0UEel8xyfipIcEBI'
+      url: '/images/formation-femmes.webp'
     },
     {
       id: '3',
       titre: 'Restauration de la ceinture côtière de Kribi',
       categorie: 'Environnement',
-      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfCQ82xd-4McG0gN4b-G41tl1_PRniHOV9qCNQIUyWVFLhhKYYt6bniUFzcjfklDlZarp4wG0rm0gVLo5t-hgn1xWMvOEtm3swSD759ZlyuGUmyVkekReGDzz0BZLLFGKBGAB5KORAjmFOpBP_pYEzDjjvecxtWfKztKcufFL5IpUOWRu47P9eFFlmY3GkqQVfbDTvX_dzvA8QKQRIYzREuD5QL1aHEnXVBEU5e1CZmZv9-HbW1JoCuw'
+      url: '/images/restauration-mangroves.webp'
     },
     {
       id: '4',
       titre: 'Concertation sous l\'arbre à palabres avec les peuples Bagyeli',
       categorie: 'Plaidoyer & Droits',
-      url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBn4HVFmswYZ6wyHY-tIwJJgfpy9J5K6ZfWZVDX4-Z_6S-ALVu3kCU43fLb7BrjElgWIxIgdXwJ0nqb5MfRbJ6Ag0A6hQJO3XDQ76GCpmW6mOfwqli8LpUiZKMJpQZtMCg0zZ3ez06PkOQjIeYKDxTSQ2SpSYqhRCjaNYV_cFSjLLEJeFff1FbrJtdRDlW3UZxy_ns0EfhRw7__1lN-Bh6JMKNj_YgNZueTfk4K5DstdwWc9iMbfAcxcw'
+      url: '/images/arbre-palabres.webp'
     },
     {
       id: '5',
