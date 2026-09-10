@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
 
 export default function FaireUnDonPage() {
   const [montant, setMontant] = useState<number>(10000);
@@ -11,6 +12,9 @@ export default function FaireUnDonPage() {
   const [accord, setAccord] = useState<boolean>(true);
   const [nom, setNom] = useState<string>('');
   const [prenom, setPrenom] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const donateursExemples = [
     { nom: "Mme Clarisse N.", montant: "25 000 FCFA", type: "Don financier" },
@@ -18,15 +22,79 @@ export default function FaireUnDonPage() {
     { nom: "Fondation Partenaire", montant: "100 000 FCFA", type: "Don financier" }
   ];
 
-  const handlePay = (e: React.FormEvent) => {
+  const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+    
     const finalAmount = isCustom ? Number(montantCustom) : montant;
     if (!finalAmount || finalAmount <= 0) {
-      alert("Veuillez saisir un montant de don valide.");
+      setErrorMessage("Veuillez sélectionner ou saisir un montant de don valide.");
       return;
     }
-    alert(`Redirection vers LeekPay pour valider votre don ponctuel de ${finalAmount.toLocaleString()} FCFA. Merci pour votre soutien à LISDA ONG !`);
-    window.location.href = '/faire-un-don/merci';
+
+    if (!email.trim()) {
+      setErrorMessage("Veuillez renseigner votre adresse email pour recevoir votre confirmation.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const returnUrl = `${window.location.origin}/faire-un-don/merci?amount=${finalAmount}&name=${encodeURIComponent(`${prenom} ${nom}`.trim())}&currency=XOF`;
+
+      // Invoke Supabase Edge Function 'leekpay-checkout'
+      const { data, error } = await supabase.functions.invoke('leekpay-checkout', {
+        body: {
+          amount: finalAmount,
+          customer_email: email.trim(),
+          customer_name: `${prenom} ${nom}`.trim() || "Donateur LISDA",
+          return_url: returnUrl,
+          accord_affichage: accord,
+          type_don: 'argent'
+        }
+      });
+
+      if (error) {
+        console.error("Erreur Edge Function leekpay-checkout:", error);
+        // Direct fetch fallback if functions endpoint differs
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ipdeviqvuybsftzzcxpk.supabase.co'}/functions/v1/leekpay-checkout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_tydFGAffQ6yDfY9457h2NQ_GbV1s9Ba'
+          },
+          body: JSON.stringify({
+            amount: finalAmount,
+            customer_email: email.trim(),
+            customer_name: `${prenom} ${nom}`.trim() || "Donateur LISDA",
+            return_url: returnUrl,
+            accord_affichage: accord,
+            type_don: 'argent'
+          })
+        });
+
+        const fallbackData = await response.json();
+        if (fallbackData.payment_url) {
+          window.location.href = fallbackData.payment_url;
+          return;
+        } else {
+          throw new Error(fallbackData.error || error.message || "Impossible d'initialiser le paiement LeekPay.");
+        }
+      }
+
+      if (data?.payment_url) {
+        // Redirect browser to official LeekPay payment page
+        window.location.href = data.payment_url;
+      } else {
+        throw new Error(data?.error || "L'URL de paiement LeekPay n'a pas été renvoyée.");
+      }
+    } catch (err: any) {
+      console.error("Échec du paiement LeekPay:", err);
+      setErrorMessage(
+        err.message || "Une erreur est survenue lors de l'accès à la passerelle de paiement LeekPay. Veuillez réessayer."
+      );
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -36,13 +104,13 @@ export default function FaireUnDonPage() {
         <div className="grid grid-cols-1 md:grid-cols-12 items-center">
           <div className="md:col-span-7 p-8 lg:p-10 space-y-4">
             <span className="text-xs uppercase tracking-widest text-[#feb323] font-bold bg-white/10 px-3.5 py-1 rounded-full">
-              Don Ponctuel Exclusif
+              Don Ponctuel Sécurisé via LeekPay
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
               Soutenez les actions de LISDA ONG
             </h1>
             <p className="text-sm text-gray-200 leading-relaxed">
-              Vos dons sont 100% ponctuels sans aucun prélèvement ni abonnement récurrent. Ils financent l'agroforesterie, la protection des mangroves et l'aide aux familles Bagyeli.
+              Vos dons sont 100% ponctuels sans aucun prélèvement ni abonnement récurrent. Ils financent directement l'agroforesterie, la protection des mangroves et l'aide aux familles Bagyeli à Kribi.
             </p>
           </div>
           <div className="md:col-span-5 relative h-64 md:h-full min-h-[240px]">
@@ -66,7 +134,7 @@ export default function FaireUnDonPage() {
               typeDon === 'argent' ? 'bg-[#083415] text-[#feb323] shadow-md' : 'text-[#424941]'
             }`}
           >
-            Don Financier (Ponctuel)
+            Don Financier (LeekPay Mobile Money & Carte)
           </button>
           <button
             onClick={() => setTypeDon('nature')}
@@ -78,11 +146,18 @@ export default function FaireUnDonPage() {
           </button>
         </div>
 
+        {errorMessage && (
+          <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+            <span>⚠️</span>
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
         {typeDon === 'argent' ? (
           <form onSubmit={handlePay} className="space-y-6">
             <div className="space-y-3">
               <label className="block text-xs font-bold text-[#083415] uppercase tracking-wider">
-                Sélectionner le montant du don (FCFA)
+                1. Sélectionner le montant du don (FCFA)
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[5000, 10000, 25000, 50000].map((m) => (
@@ -105,7 +180,7 @@ export default function FaireUnDonPage() {
               </div>
 
               {/* Case de personnalisation manuelle du don */}
-              <div className="pt-3 space-y-1.5">
+              <div className="pt-2 space-y-1.5">
                 <label className="block text-xs font-bold text-[#083415] uppercase">
                   Ou saisissez un montant personnalisé (FCFA)
                 </label>
@@ -135,27 +210,44 @@ export default function FaireUnDonPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-[#083415] uppercase mb-1">Prénom *</label>
-                <input
-                  type="text"
-                  required
-                  value={prenom}
-                  onChange={(e) => setPrenom(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#083415]"
-                  placeholder="Votre prénom"
-                />
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-[#083415] uppercase tracking-wider">
+                2. Vos coordonnées
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Prénom *</label>
+                  <input
+                    type="text"
+                    required
+                    value={prenom}
+                    onChange={(e) => setPrenom(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#083415] text-sm"
+                    placeholder="Votre prénom"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Nom *</label>
+                  <input
+                    type="text"
+                    required
+                    value={nom}
+                    onChange={(e) => setNom(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#083415] text-sm"
+                    placeholder="Votre nom"
+                  />
+                </div>
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-[#083415] uppercase mb-1">Nom *</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Adresse Email * (pour le reçu de paiement)</label>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  value={nom}
-                  onChange={(e) => setNom(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#083415]"
-                  placeholder="Votre nom"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-[#083415] text-sm"
+                  placeholder="votre.email@exemple.com"
                 />
               </div>
             </div>
@@ -175,10 +267,31 @@ export default function FaireUnDonPage() {
 
             <button
               type="submit"
-              className="w-full py-4 rounded-full bg-[#feb323] text-[#083415] font-extrabold text-base hover:bg-amber-400 shadow-xl transition-all"
+              disabled={isLoading}
+              className={`w-full py-4 rounded-full bg-[#feb323] hover:bg-amber-400 text-[#083415] font-extrabold text-base shadow-xl transition-all flex items-center justify-center gap-2 ${
+                isLoading ? 'opacity-75 cursor-not-allowed' : ''
+              }`}
             >
-              🔒 Faire mon don maintenant ({ (isCustom ? (Number(montantCustom) || 0) : montant).toLocaleString() } FCFA)
+              {isLoading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-[#083415] border-t-transparent rounded-full animate-spin"></div>
+                  <span>Connexion à LeekPay en cours...</span>
+                </>
+              ) : (
+                <>
+                  <span>🔒</span>
+                  <span>Faire mon don maintenant ({ (isCustom ? (Number(montantCustom) || 0) : montant).toLocaleString() } FCFA)</span>
+                </>
+              )}
             </button>
+
+            <div className="flex items-center justify-center gap-4 text-xs text-gray-500 pt-2">
+              <span className="flex items-center gap-1">🛡️ Paiement sécurisé LeekPay</span>
+              <span>•</span>
+              <span>📱 MTN & Orange Money</span>
+              <span>•</span>
+              <span>💳 Carte Bancaire</span>
+            </div>
           </form>
         ) : (
           <div className="space-y-4 text-sm text-gray-700 p-6 bg-[#f5f3ee] rounded-2xl border border-[#083415]/10">
@@ -213,4 +326,3 @@ export default function FaireUnDonPage() {
     </div>
   );
 }
-
