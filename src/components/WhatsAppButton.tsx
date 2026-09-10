@@ -1,6 +1,14 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
+
 export default function WhatsAppButton() {
+  const pathname = usePathname();
+
+  if (pathname?.startsWith('/admin')) {
+    return null;
+  }
+
   const phone = '237677593239';
   const text = encodeURIComponent("Bonjour LISDA, je souhaite avoir plus d'informations sur vos actions.");
   const waUrl = `https://wa.me/${phone}?text=${text}`;

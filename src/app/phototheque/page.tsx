@@ -1,61 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { PhotothequeItem, initialPhototheque, getStoredData } from '@/lib/adminData';
 
 export default function PhotothequePage() {
-  const photos = [
-    {
-      id: '1',
-      titre: 'Rassemblement communautaire à Dombe',
-      categorie: 'Vie Associative',
-      url: '/images/rassemblement-dombe.webp'
-    },
-    {
-      id: '2',
-      titre: 'Formation agroforestière des femmes rurales',
-      categorie: 'Autonomisation',
-      url: '/images/formation-femmes.webp'
-    },
-    {
-      id: '3',
-      titre: 'Restauration de la ceinture côtière de Kribi',
-      categorie: 'Environnement',
-      url: '/images/restauration-mangroves.webp'
-    },
-    {
-      id: '4',
-      titre: 'Concertation sous l\'arbre à palabres avec les peuples Bagyeli',
-      categorie: 'Plaidoyer & Droits',
-      url: '/images/arbre-palabres.webp'
-    },
-    {
-      id: '5',
-      titre: 'Séance de travail du Bureau Exécutif LISDA',
-      categorie: 'Gouvernance',
-      url: '/images/bureau-executif.webp'
-    },
-    {
-      id: '6',
-      titre: 'Inspection des mangroves littorales atlantiques',
-      categorie: 'Climat & Littoral',
-      url: '/images/inspection-mangroves.webp'
-    },
-    {
-      id: '7',
-      titre: 'Distribution d\'actes d\'état-civil aux familles Bagyeli',
-      categorie: 'Droits Autochtones',
-      url: '/images/distribution-etat-civil.webp'
-    },
-    {
-      id: '8',
-      titre: 'Pépinière d\'arbres autochtones du Sud Cameroun',
-      categorie: 'Agroécologie',
-      url: '/images/pepiniere-arbres.webp'
-    }
-  ];
-
+  const [photos, setPhotos] = useState<PhotothequeItem[]>(initialPhototheque);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPhotos(getStoredData<PhotothequeItem[]>('lisda_phototheque', initialPhototheque));
+    const handleDataChange = () => {
+      setPhotos(getStoredData<PhotothequeItem[]>('lisda_phototheque', initialPhototheque));
+    };
+    window.addEventListener('lisda_data_changed', handleDataChange);
+    return () => window.removeEventListener('lisda_data_changed', handleDataChange);
+  }, []);
+
 
   return (
     <div className="w-full bg-[#fbf9f4] text-[#1b1c19] min-h-screen py-12 px-6 lg:px-12 space-y-12">

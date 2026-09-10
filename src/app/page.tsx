@@ -1,29 +1,25 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ActualiteItem, initialActualites, getStoredData } from '@/lib/adminData';
 
 export default function Home() {
-  const actualites = [
-    {
-      titre: "Atelier de formation en agroforesterie à Dombe",
-      date: "Mars 2026 • Kribi",
-      categorie: "Agroécologie",
-      description: "Plus de 40 agriculteurs de la commune de Kribi ont appris les techniques de semis d'arbres fertilisants pour régénérer les sols dégradés sans intrants chimiques.",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBzYllvG22lMKHQvWROKgpUCyTF8Iy_aH63VOzXTHrPBbO7Gb6lK6RtKKzr3ZJjK8UJ7nDQq_6Eo7rbPwd1gASzVfEhd0PXtOMMgMaY7KS-Wt5F55LHkcDu1qiPNgxuj7wOtEQZPIu9Mklkn5QsCzJjIzz8TKUWM2vPWE8EN5U8GzFx2pEUtUOLlboV0RRQj7h8EC0IyVtkb3AjSNbVBd1kDS-2FC1t4qL_eTxI4j3oh7uvCJSA2i16IA"
-    },
-    {
-      titre: "Appui scolaire pour les enfants autochtones Bagyeli",
-      date: "Février 2026 • Bipindi",
-      categorie: "Éducation & Droits",
-      description: "Remise solennelle de 150 trousseaux scolaires et couverture des frais d'inscription pour encourager la scolarisation des jeunes filles et garçons autochtones.",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDYqfiULPt37uT6NIzHYrsjAfV31CNvfWCNiT0vx1bWEddu-w9Ijaa422NlguLPAhbgkgpEzf_ktaJT9LpYFYrmdeAvFJbKPrrk2jf26uygSwUVx0JUOVKe6qJfxGHiU2LogU0soUFQp52wZA-uUZDePR0OHLkNxQihBbL5iaDtxyfeOdponG9bJ9bRXY9Bh4pOa1BjoIA-zr_fyPynns5Z8petjVo7ynXYVmxnjozkhzzcvduqhO_pDg"
-    },
-    {
-      titre: "Comité local de veille climatique et des cours d'eau",
-      date: "Janvier 2026 • Bassin de la Kienké",
-      categorie: "Environnement",
-      description: "Création d'un réseau de sentinelles citoyennes chargées de signaler les pollutions industrielles et les risques d'inondation soudaine pour les pêcheurs locaux.",
-      image: "https://lh3.googleusercontent.com/aida-public/AB6AXuABLsyXf98GZN8z2lmhkc9hU_WpnLYLcoGGY5RV4aDn0h5Z5_ViScAKogr1bQnT7AJBbWdyMZx_X1tf_Oy7FzbQM9NZWCzdz6Ue4RmJ0TAQRPWlDaAwGFkxuVEFGL68Ka0_TzIm3D_np4efhEosmZweinGbH870o5QcVp-Go19YjuaudlfWHNH0bUISc6HYMSWy_53o1GxRBJCPwu2mfce3EQg3aC3GsrCXPb-bDRxIq1QtFmlIhC3wVA"
-    }
-  ];
+  const [actualites, setActualites] = useState<ActualiteItem[]>(initialActualites);
+
+  useEffect(() => {
+    const list = getStoredData<ActualiteItem[]>('lisda_actualites', initialActualites);
+    setActualites(list.filter(a => a.statut === 'publie'));
+
+    const handleDataChange = () => {
+      const updated = getStoredData<ActualiteItem[]>('lisda_actualites', initialActualites);
+      setActualites(updated.filter(a => a.statut === 'publie'));
+    };
+
+    window.addEventListener('lisda_data_changed', handleDataChange);
+    return () => window.removeEventListener('lisda_data_changed', handleDataChange);
+  }, []);
+
 
   return (
     <div className="flex flex-col w-full">
